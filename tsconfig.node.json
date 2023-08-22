@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "composite": true,
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "resolveJsonModule": true,
+    "paths": {
+      "~/*": ["./src/*"],
+      "src/*": ["./src/*"]
+    },
+    "types": ["unplugin-icons/types/vue", "chrome"]
+  },
+  "include": [
+    "vite.config.ts",
+    "manifest.config.ts",
+    "manifest.json",
+    ".eslintrc.cjs"
+  ]
+}
