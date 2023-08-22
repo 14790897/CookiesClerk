@@ -64,12 +64,13 @@ type CookieType = {
 interface Account {
   cookies: chrome.cookies.Cookie[]
   manualSave?: boolean
+  deleted?: boolean
 }
 
 // 定义变量的类型
+let accounts: Record<string, Account> = {}
 let trackedDomains: string[] = []
 
-let accounts: Record<string, Account> = {}
 
 interface SaveCookiesRequest {
   action: 'saveCookies'
@@ -135,6 +136,7 @@ function getURLFromAccountKey(accountKey: string): string {
 }
 
 //每次重新打开浏览器插件时，需要检测一遍这个浏览器窗口的所有标签页，看是否和我现在账户列表里的域名加标签位置的域名是否匹配,如果不匹配，就把账户里对应的选项给删除 8.14
+//这里如果初始化的话应该把ID全部重置为一个负值，这样就不会和正常的ID冲突了 8.22
 function checkTabsAndCleanAccounts() {
   chrome.tabs.query({}, function (tabs) {
     // 创建一个集合来存储当前打开的所有键
@@ -279,37 +281,31 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 })
 
 // Handle tab closure events
-chrome.tabs.onRemoved.addListener(function (tabId, _removeInfo) {
+chrome.tabs.onRemoved.addListener(async function (tabId, _removeInfo) {
   try {
-    const tabInfo = tabIndexMap[tabId]
-    if (tabInfo) {
-      console.log('remove已经触发')
-      const [rootDomain, key]: [string, string] = processDomain({
-        url: tabInfo.url,
-        index: tabInfo.index,
-      } as chrome.tabs.Tab) as [string, string]
-      // 如果此标签索引的 cookies 被存储，则删除它们
-      if (key in accounts) {
-        delete accounts[key]
-        // 保存更改到chrome.storage.local
-        chrome.storage.local.set({ accounts: accounts })
+    for (const key in accounts) {
+      const keyParts = key.split('-')
+      const storedTabId = keyParts[keyParts.length - 1] // tabID存储在键的最后一部分
+      if (storedTabId === String(tabId)) {
+        // delete accounts[key]
+        accounts[key].deleted = true
       }
-      // 从地图中删除该选项卡的条目
-      delete tabIndexMap[tabId]
     }
+    // 存储更新后的`accounts`对象
+    await chrome.storage.local.set({ accounts: accounts })
   } catch (error) {
-    console.log('An error occurred in onRemoved', error)
+    console.log('An error occurred in remove listener:', error)
   }
 })
 
 async function handleTabChange(tabId: number) {
   //这段代码的功能是激活新的tab时,先保存旧的页面的 cookies，然后清除旧的页面的cookies，然后加载新的页面的cookies
   // If there is a currently active tab, save its cookies
-  if (currentTabId !== null) {
-    const tab = await chrome.tabs.get(currentTabId)
-    console.log('tab.url', tab.url)
+  try {
+    if (currentTabId !== null) {
+      const tab = await chrome.tabs.get(currentTabId)
+      console.log('tab.url', tab.url)
 
-    try {
       const [rootDomain, key] = processDomain(tab) as [string, string]
       await saveCurrentCookies(rootDomain, key)
       console.log('handleTabChange中saveCurrentCookies已触发')
@@ -320,9 +316,9 @@ async function handleTabChange(tabId: number) {
       }
       //load之前先把已经存在的cookie删除 8.18
       await clearCookiesForDomain(rootDomain)
-    } catch (error) {
-      console.log('在handletapchange中需要忽视的报错processDomain报错,发生在保存以及清除cookies时', error)
     }
+  } catch (error) {
+    console.log('在handletapchange中需要忽视的报错processDomain报错,发生在保存以及清除cookies时', error)
   }
 
   // Update the currently active tab ID
@@ -605,13 +601,13 @@ function processDomain(tab: chrome.tabs.Tab, throwErrors = true): [string, strin
   }
 
   if (trackedDomains.includes(rootDomain)) {
-    const key = `${rootDomain}-${tab.index}`
+    const key = `${rootDomain}-${tab.id}`
     return [rootDomain, key]
   } else {
     if (throwErrors) {
       throw new Error('This domain is not tracked in processDomain. Root domain: ' + rootDomain)
     } else {
-      const key = `${rootDomain}-${tab.index}`
+      const key = `${rootDomain}-${tab.id}`
       return [rootDomain, key, true]
     }
   }

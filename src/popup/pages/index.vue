@@ -7,6 +7,7 @@
       <select id="accountSelect" v-model="selectedAccount" class="form-select block w-full mt-1 mr-2">
         <option v-for="(accountData, accountKey) in accounts" :key="accountKey" :value="accountKey">
           {{ modifyAccountKey(accountKey) }} {{ accountData && accountData.manualSave ? '[Manually Saved]' : '' }}
+          {{ accountData && accountData.deleted ? '[closed]' : '' }}
         </option>
       </select>
       <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-2"
@@ -215,7 +216,7 @@ export default defineComponent({
         });
       }
     };
-
+  
     const addDomain = () => {
       if (!newDomain.value || !isValidDomain(newDomain.value)) {
         alert('Please enter a valid domain.');
