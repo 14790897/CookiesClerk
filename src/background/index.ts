@@ -157,9 +157,7 @@ function checkTabsAndCleanAccounts() {
         delete accounts[accountKey]
       }
     })
-    console.log(
-      '已经检查并删除一些不存在的选项卡cookie in checkTabsAndCleanAccounts'
-    )
+    console.log('已经检查并删除一些不存在的选项卡cookie in checkTabsAndCleanAccounts')
     // 将更新后的账户列表保存回插件的存储
     chrome.storage.local.set({ accounts: accounts })
   })
@@ -170,107 +168,61 @@ chrome.runtime.onStartup.addListener(checkTabsAndCleanAccounts)
 // 在插件启动时调用此函数
 // checkTabsAndCleanAccounts()
 
-chrome.runtime.onMessage.addListener(
-  async (
-    request: RequestAction,
-    _sender: chrome.runtime.MessageSender,
-    _sendResponse: (response: any) => void
-  ) => {
-    if (request.action == 'saveCookies') {
+//可能还少检查了一步，如果cookies的domain和你从网址中读取的怎么不一样,我觉得最好是在你手动读取的domain前面加一个点
+chrome.runtime.onMessage.addListener(async (request: RequestAction, _sender: chrome.runtime.MessageSender, _sendResponse: (response: any) => void) => {
+  if (request.action == 'saveCookies') {
+    try {
       console.log('手动saveCookies已经触发')
       // 获取当前活动窗口的活动标签
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        let url: string | undefined
-        // 在调用之后打印返回的tabs数组
-        console.log('Tabs returned from query: ', tabs)
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+      // 在调用之后打印返回的tabs数组
+      console.log('Tabs returned from query: ', tabs)
 
-        // 可以进一步检查tabs数组的长度，以确定是否有找到活动标签
-        if (tabs.length === 0) {
-          console.error(
-            'No active tab found in current window in  savecookies manually.'
-          )
-          return
-        } else {
-          // 如果有活动标签，打印出URL
-          url = tabs[0].url
-          console.log('URL of active tab in savecookies manually: ', url)
-        }
-        if (tabs[0].id == undefined) {
-          console.error(
-            'Unable to get tab id from active tabid in savecookies manually'
-          )
-          return
-        }
-        if (url == undefined) {
-          console.error(
-            'Unable to get URL from active tab in savecookies manually'
-          )
-          return
-        }
+      // 可以进一步检查tabs数组的长度，以确定是否有找到活动标签
+      if (tabs.length === 0) {
+        console.error('No active tab found in current window in savecookies manually.')
+        return
+      }
 
-        // Extract the root domain
-        const rootDomain = getRootDomain(new URL(url).origin)
-        if (rootDomain) {
-          // Check if the domain is already in trackedDomains
-          if (!trackedDomains.includes(rootDomain)) {
-            trackedDomains.push(rootDomain)
-            try {
-              await chrome.storage.sync.set({
-                trackedDomains: JSON.stringify(trackedDomains),
-              })
-            } catch (error) {
-              // 如果存储失败，可以将刚刚的添加操作撤销
-              trackedDomains.pop()
-              console.error('An error occurred: ', error)
-            }
+      const [rootDomain, key, isNotInDomain] = processDomain(tabs[0], false) as [string, string, boolean]
+      if (isNotInDomain) {
+        trackedDomains.push(rootDomain as string)
+        await chrome.storage.sync.set({
+          trackedDomains: JSON.stringify(trackedDomains),
+        })
+      } else {
+        console.log('this domain is not added in savecookies manually because it has been added before')
+      }
 
-          } else {
-            console.log(
-              'this domain is not added in savecookies manually because it has been added before'
-            )
-          }
-          // Continue with saving the cookies
-          if (request.account in accounts) {
-            const tab =  await chrome.tabs.get(tabs[0].id)
-            const [rootDomain, key] = processDomain(tab) as [string, string]
-            saveCurrentCookies(rootDomain, key, request.account)
-          } else {
-            console.log(
-              "We don't receive the account you select in saveCookies manually",
-              'accounts:',
-              accounts,
-              'request.account:',
-              request.account
-            )
-          }
-        } else {
-          console.error(
-            'Unable to get rootDomain from url in saveCookies manually'
-          )
-        }
-      })
-    } else if (request.action == 'loadCookies') {
-      console.log('手动loadCookies已经触发')
+      if (request.account in accounts) {
+        await saveCurrentCookies(rootDomain, key, request.account)
+      } else {
+        console.log("We don't receive the account you select in saveCookies manually", 'accounts:', accounts, 'request.account:', request.account)
+      }
+    } catch (error) {
+      console.log('An error occurred in saveCookies manually:', error)
+    }
+  } else if (request.action == 'loadCookies') {
+    console.log('手动loadCookies已经触发')
+    try {
       if (request.account in accounts && accounts[request.account]) {
         // Get the URL for the account
         const url = getURLFromAccountKey(request.account)
         // Load cookies for this account
         const rootDomain = getRootDomain(url)
         if (rootDomain) {
-          loadCookies(rootDomain, accounts[request.account].cookies).catch(
-            (error) => {
-              console.error('Error loading cookies:', error)
-            }
-          )
+          await loadCookies(rootDomain, accounts[request.account].cookies)
         } else {
-          console.error('Unable to get rootDomain from url in loadCookies')
+          console.error('Unable to get rootDomain from url in loadCookies manually.')
         }
       } else {
         console.log('No cookies saved for this account 在手动loadCookies中.')
       }
+    } catch (error) {
+      console.log('An error occurred in loadCookies manually:', error)
     }
   }
-)
+})
 
 let clearCookiesEnabled = false // 开关状态
 
@@ -288,6 +240,7 @@ chrome.tabs.onActivated.addListener(function (activeInfo) {
 })
 
 // 下面的代码可以在后期的提高efficiency，但是我现在先不使用
+//需要实现的功能，如果当前tab已经在账户中有对应的键了，那就不要再删除了,因为能够自动更新
 // const tabDomains: Record<number, string> = {} // 用于存储每个选项卡的当前URL
 
 // chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -360,6 +313,10 @@ async function handleTabChange(tabId: number) {
       await saveCurrentCookies(rootDomain, key)
       console.log('handleTabChange中saveCurrentCookies已触发')
 
+      //用户可以选择是否清除
+      if (!clearCookiesEnabled) {
+        return
+      }
       //load之前先把已经存在的cookie删除 8.18
       await clearCookiesForDomain(rootDomain)
     } catch (error) {
@@ -369,7 +326,7 @@ async function handleTabChange(tabId: number) {
 
   // Update the currently active tab ID
   currentTabId = tabId
-  
+
   try {
     // Get the URL and index of the newly activated tab
     const tab = await chrome.tabs.get(currentTabId)
@@ -379,9 +336,7 @@ async function handleTabChange(tabId: number) {
     if (key in accounts && accounts[key]) {
       await loadCookies(rootDomain, accounts[key].cookies)
     } else {
-      console.log(
-        '域名为追踪域名，但是当前域名-索引没有在保存账户中,所以无法从中加载cookies'
-      )
+      console.log('域名为追踪域名，但是当前域名-索引没有在保存账户中,所以无法从中加载cookies')
     }
   } catch (error) {
     console.log('An error occurred in handleTabChange in loadCookies:', error)
@@ -389,11 +344,7 @@ async function handleTabChange(tabId: number) {
 }
 
 // Save the current cookies for the specified tab
-async function saveCurrentCookies(
-  rootDomain: string,
-  key: string,
-  manualSave: boolean | string = false
-): Promise<void> {
+async function saveCurrentCookies(rootDomain: string, key: string, manualSave: boolean | string = false): Promise<void> {
   try {
     // Save the current cookies for this URL and tab index
     const cookies = await chrome.cookies.getAll({ domain: rootDomain })
@@ -427,23 +378,14 @@ function adjustCookieForSpecialNames(cookie: any) {
 }
 
 // Load the specified cookies for the specified URL
-async function loadCookies(
-  rootDomain: string,
-  cookies: chrome.cookies.Cookie[]
-): Promise<void> {
+async function loadCookies(rootDomain: string, cookies: chrome.cookies.Cookie[]): Promise<void> {
   try {
     console.log('loadCookies已触发,clear的输出应该在此之前')
     const existingCookies = await chrome.cookies.getAll({ domain: rootDomain })
     const promises = Object.values(cookies).map(async (cookie) => {
-      const cookieUrl =
-        (cookie.secure ? 'https://' : 'http://') +
-        cookie.domain.replace(/^\./, '') // 移除域名开始的点
+      const cookieUrl = (cookie.secure ? 'https://' : 'http://') + cookie.domain.replace(/^\./, '') // 移除域名开始的点
       const isCookiePresent = existingCookies.some(
-        (existingCookie) =>
-          existingCookie.name === cookie.name &&
-          existingCookie.value === cookie.value &&
-          existingCookie.path === cookie.path &&
-          existingCookie.domain === cookie.domain
+        (existingCookie) => existingCookie.name === cookie.name && existingCookie.value === cookie.value && existingCookie.path === cookie.path && existingCookie.domain === cookie.domain
       )
       if (cookie.sameSite == undefined) {
         console.log('cookie.sameSite:', cookie.sameSite)
@@ -483,38 +425,13 @@ async function loadCookies(
   }
 }
 
-const activationTimeForTabId: any = {}
-
-// 监听标签的激活状态
-chrome.tabs.onActivated.addListener((activeInfo) => {
-  activationTimeForTabId[activeInfo.tabId] = Date.now()
-})
-//如果是需要追踪的domain，每次激活页面时暂停一秒钟
-// chrome.webRequest.onBeforeRequest.addListener(
-//   (details) => {
-//     const activationTime = activationTimeForTabId[details.tabId]
-//     if (activationTime && Date.now() - activationTime < 1000) {
-//       return { cancel: true }
-//     }
-//     return { cancel: false }
-//   },
-//   { urls: trackedDomains },
-//   ['blocking']
-// )
-
 // 清除特定域名的所有 cookies
 async function clearCookiesForDomain(domain: string) {
   try {
     const cookies = await chrome.cookies.getAll({ domain })
 
-    console.log(
-      '%c ---------------------------------------------------',
-      'background: #00ff00; color: #000'
-    )
-    console.log(
-      `%c Found ${cookies.length} cookies for domain: ${domain}`,
-      'background: #00ff00; color: #000'
-    )
+    console.log('%c ---------------------------------------------------', 'background: #00ff00; color: #000')
+    console.log(`%c Found ${cookies.length} cookies for domain: ${domain}`, 'background: #00ff00; color: #000')
 
     const promises = cookies.map(async (cookie) => {
       const { name, domain, storeId } = cookie
@@ -523,36 +440,22 @@ async function clearCookiesForDomain(domain: string) {
       const result = await chrome.cookies.remove({ url, name, storeId })
 
       if (!result) {
-        console.error(
-          `%c Failed to remove cookie named ${name} from ${url}.`,
-          'background: #ff0000; color: #fff'
-        )
+        console.error(`%c Failed to remove cookie named ${name} from ${url}.`, 'background: #ff0000; color: #fff')
       } else {
-        console.log(
-          `%c Successfully removed cookie named ${name} from ${url}.`,
-          'background: #00ff00; color: #000'
-        )
+        console.log(`%c Successfully removed cookie named ${name} from ${url}.`, 'background: #00ff00; color: #000')
       }
     })
 
     // Once all cookies are removed, print the final log line
     await Promise.all(promises)
-    console.log(
-      '%c ------------------------------------------------------------------',
-      'background: #00ff00; color: #000'
-    )
+    console.log('%c ------------------------------------------------------------------', 'background: #00ff00; color: #000')
   } catch (error) {
-    console.error(
-      '%c Error during cookie operation:',
-      'background: #ff0000; color: #fff',
-      error
-    )
+    console.error('%c Error during cookie operation:', 'background: #ff0000; color: #fff', error)
   }
 }
 
 //下面的是不行的，因为创造的时候，它是创造一个空白标签，所以是没有用
-
-// 监听标签页的创建事件,不能在update的时候进行clear，因为这样子是不符合规律的
+// 监听标签页的创建事件
 // chrome.tabs.onCreated.addListener(function(tab) {
 //     if (clearCookiesEnabled && tab.url) {
 //         // 检查开关是否启用和 URL 是否存在
@@ -573,10 +476,7 @@ chrome.tabs.onMoved.addListener(async function (tabId, moveInfo) {
   try {
     const tab = await chrome.tabs.get(tabId)
     console.log('moved已经触发')
-    const [rootDomain, key]: [string, string] = processDomain(tab) as [
-      string,
-      string
-    ]
+    const [rootDomain, key]: [string, string] = processDomain(tab) as [string, string]
 
     const oldKey = `${rootDomain}-${moveInfo.fromIndex}`
     const newKey = `${rootDomain}-${moveInfo.toIndex}`
@@ -630,22 +530,15 @@ chrome.tabs.onMoved.addListener(async function (tabId, moveInfo) {
 //   })
 // })
 
-async function updateRemainingIndexes(
-  windowId: number,
-  oldPosition: number,
-  newPosition = -1
-): Promise<void> {
+async function updateRemainingIndexes(windowId: number, oldPosition: number, newPosition = -1): Promise<void> {
   try {
     const tabs = await chrome.tabs.query({ windowId: windowId })
     tabs.forEach(function (tab) {
-      const [rootDomain, key]: [string, string] = processDomain(tab) as [
-        string,
-        string
-      ]
+      const [rootDomain, key]: [string, string] = processDomain(tab) as [string, string]
 
       if (newPosition === -1) {
         // Handle detachment and attachment
-        //这里有一些我未曾了解的东西，需要研究
+        //应该是旧的窗口，>的都要减一，新的窗口，>的都要加一
         if (tab.index > oldPosition) {
           updateKey(rootDomain, tab.index, tab.index - 1)
         }
@@ -662,18 +555,13 @@ async function updateRemainingIndexes(
         }
       }
     })
-
     chrome.storage.local.set({ accounts: accounts })
   } catch (error) {
     console.log('An error occurred in updateRemainingIndexes:', error)
   }
 }
 
-function updateKey(
-  rootDomain: string,
-  oldIndex: number,
-  newIndex: number
-): void {
+function updateKey(rootDomain: string, oldIndex: number, newIndex: number): void {
   const oldKey = `${rootDomain}-${oldIndex}`
   const newKey = `${rootDomain}-${newIndex}`
 
@@ -692,14 +580,12 @@ function isValidURL(url: string): boolean {
   }
 }
 
-function processDomain(tab: chrome.tabs.Tab): [string, string] | null {
+function processDomain(tab: chrome.tabs.Tab, throwErrors = true): [string, string] | null | [string, string, boolean] {
   if (!tab) {
     throw new Error('Tab not found in processDomain')
   }
   if (tab.pendingUrl && isSpecialPage(tab.pendingUrl)) {
-    throw new Error(
-      `pendingUrl is specialPage  in processDomain: ${tab.pendingUrl}`
-    )
+    throw new Error(`pendingUrl is specialPage  in processDomain: ${tab.pendingUrl}`)
   }
 
   if (!tab.url) {
@@ -713,14 +599,20 @@ function processDomain(tab: chrome.tabs.Tab): [string, string] | null {
   }
 
   const rootDomain = getRootDomain(url)
+  if (!rootDomain) {
+    throw new Error('Root domain not found in processDomain.')
+  }
 
-  if (rootDomain && trackedDomains.includes(rootDomain)) {
+  if (trackedDomains.includes(rootDomain)) {
     const key = `${rootDomain}-${tab.index}`
     return [rootDomain, key]
   } else {
-    throw new Error(
-      'This domain is not tracked in processDomain. Root domain: ' + rootDomain
-    )
+    if (throwErrors) {
+      throw new Error('This domain is not tracked in processDomain. Root domain: ' + rootDomain)
+    } else {
+      const key = `${rootDomain}-${tab.index}`
+      return [rootDomain, key, true]
+    }
   }
 }
 
@@ -739,11 +631,7 @@ function getRootDomain(url: string): string | null {
 }
 
 function isSpecialPage(pendingUrl: string) {
-  return (
-    pendingUrl.startsWith('chrome://') ||
-    pendingUrl.startsWith('about:') ||
-    pendingUrl.startsWith('file://')
-  )
+  return pendingUrl.startsWith('chrome://') || pendingUrl.startsWith('about:') || pendingUrl.startsWith('file://')
 }
 
 // function fixCookieDomainAndUrl(cookie: CookieType) {
