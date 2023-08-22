@@ -34,11 +34,9 @@ export default defineManifest(async (env) => ({
     'cookies',
     'storage',
     'activeTab',
-    '<all_urls>',
     'notifications',
     'tabs',
     'webRequest',
-    'webRequestBlocking',
   ],
   web_accessible_resources: [
     {

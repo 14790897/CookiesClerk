@@ -108,8 +108,8 @@ chrome.storage.local.get('accounts', function (result) {
 // Load the initial value of trackedDomains from storage
 chrome.storage.sync.get('trackedDomains', function (result) {
   if (result.trackedDomains) {
-    console.log('trackedDomains', trackedDomains)
     trackedDomains = JSON.parse(result.trackedDomains || '[]')
+    console.log('trackedDomains in sync', trackedDomains)
   }
 })
 
@@ -126,6 +126,7 @@ chrome.storage.onChanged.addListener(function (changes, areaName) {
   if (areaName === 'sync' && changes.trackedDomains) {
     // Update the local variable with the new value from storage
     trackedDomains = changes.trackedDomains.newValue
+    console.log('trackedDomains in chrome.storage.onChanged.addListener', trackedDomains)
   }
 })
 

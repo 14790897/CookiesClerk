@@ -68,7 +68,7 @@ export default defineComponent({
           console.log('存储成功!');
         }
       });
-    });
+    }, { immediate: true });
     // 当selectedAccount改变时，保存其值
     watch(selectedAccount, (newValue) => {
       chrome.storage.sync.set({ selectedAccount: newValue });
