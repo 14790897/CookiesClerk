@@ -6,7 +6,7 @@
         Account</button>
       <select id="accountSelect" v-model="selectedAccount" class="form-select block w-full mt-1 mr-2">
         <option v-for="(accountData, accountKey) in accounts" :key="accountKey" :value="accountKey">
-          {{ modifyAccountKey(accountKey) }} {{ accountData && accountData.manualSave ? '[Manually Saved]' : '' }}
+          {{ accountKey }} {{ accountData && accountData.manualSave ? '[Manually Saved]' : '' }}
           {{ accountData && accountData.deleted ? '[closed]' : '' }}
         </option>
       </select>

@@ -138,32 +138,19 @@ function getURLFromAccountKey(accountKey: string): string {
 //每次重新打开浏览器插件时，需要检测一遍这个浏览器窗口的所有标签页，看是否和我现在账户列表里的域名加标签位置的域名是否匹配,如果不匹配，就把账户里对应的选项给删除 8.14
 //这里如果初始化的话应该把ID全部重置为一个负值，这样就不会和正常的ID冲突了 8.22
 function checkTabsAndCleanAccounts() {
-  chrome.tabs.query({}, function (tabs) {
-    // 创建一个集合来存储当前打开的所有键
-    const currentKeys = new Set()
-
-    // 遍历所有标签，将与域名匹配的键添加到集合中
-    tabs.forEach((tab) => {
-      if (tab.url) {
-        const url = new URL(tab.url).origin
-        const rootDomain = getRootDomain(url)
-        if (rootDomain) {
-          const key = `${rootDomain}-${tab.index}`
-          currentKeys.add(key)
-        }
-      }
-    })
-
-    // 遍历账户列表，删除不在集合中的键
-    Object.keys(accounts).forEach((accountKey) => {
-      if (!currentKeys.has(accountKey)) {
-        delete accounts[accountKey]
-      }
-    })
-    console.log('已经检查并删除一些不存在的选项卡cookie in checkTabsAndCleanAccounts')
-    // 将更新后的账户列表保存回插件的存储
-    chrome.storage.local.set({ accounts: accounts })
+  // 创建一个新的对象来存储修改后的账户
+  const updatedAccounts: Record<string, Account> = {}
+  Object.keys(accounts).forEach((accountKey) => {
+    const modifiedKey = modifyTabIdFromKey(accountKey, true)
+    // 将修改后的键及其对应的值放回新的对象
+    updatedAccounts[modifiedKey] = accounts[accountKey]
   })
+  console.log('已经修改不存在的选项卡cookie in checkTabsAndCleanAccounts')
+  // 将更新后的账户列表保存回插件的存储
+  chrome.storage.local.set({ accounts: accounts })
+
+  // 更新全局变量
+  accounts = updatedAccounts
 }
 // 在插件启动时调用此函数
 chrome.runtime.onStartup.addListener(checkTabsAndCleanAccounts)
@@ -280,12 +267,20 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 })
 
+function extractTabIdFromKey(key:string, modify=false){
+  const keyParts = key.split('-')
+  if (modify){
+    return keyParts[0] +'-' + '-1'
+  }
+  return keyParts[keyParts.length - 1] // tabID存储在键的最后一部分
+}
+
+const modifyTabIdFromKey = extractTabIdFromKey
 // Handle tab closure events
 chrome.tabs.onRemoved.addListener(async function (tabId, _removeInfo) {
   try {
     for (const key in accounts) {
-      const keyParts = key.split('-')
-      const storedTabId = keyParts[keyParts.length - 1] // tabID存储在键的最后一部分
+      const storedTabId = extractTabIdFromKey(key)
       if (storedTabId === String(tabId)) {
         // delete accounts[key]
         accounts[key].deleted = true
@@ -298,8 +293,8 @@ chrome.tabs.onRemoved.addListener(async function (tabId, _removeInfo) {
   }
 })
 
+//这段代码的功能是激活新的tab时,先保存旧的页面的 cookies，然后清除旧的页面的cookies，然后加载新的页面的cookies
 async function handleTabChange(tabId: number) {
-  //这段代码的功能是激活新的tab时,先保存旧的页面的 cookies，然后清除旧的页面的cookies，然后加载新的页面的cookies
   // If there is a currently active tab, save its cookies
   try {
     if (currentTabId !== null) {
@@ -328,7 +323,10 @@ async function handleTabChange(tabId: number) {
     // Get the URL and index of the newly activated tab
     const tab = await chrome.tabs.get(currentTabId)
     const [rootDomain, key] = processDomain(tab) as [string, string]
-
+    
+    //让popup页面显示当前所在的账户，popup监听
+    await chrome.storage.sync.set({selectedAccount: key})
+    
     // Load the appropriate cookies
     if (key in accounts && accounts[key]) {
       await loadCookies(rootDomain, accounts[key].cookies)
