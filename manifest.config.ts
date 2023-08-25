@@ -36,7 +36,6 @@ export default defineManifest(async (env) => ({
     'activeTab',
     'notifications',
     'tabs',
-    'webRequest',
   ],
   web_accessible_resources: [
     {
