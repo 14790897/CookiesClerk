@@ -64,7 +64,7 @@ type CookieType = {
 interface Account {
   cookies: chrome.cookies.Cookie[]
   manualSave?: boolean
-  deleted?: boolean
+  closed?: boolean
 }
 
 // 定义变量的类型
@@ -93,7 +93,11 @@ interface LoadAllCookiesRequest {
   action: 'loadAllCookies'
 }
 
-type RequestAction = SaveCookiesRequest | LoadCookiesRequest | ClearCookiesRequest | SaveAllCookiesRequest | LoadAllCookiesRequest
+interface ClearAllClosedCookiesRequest {
+  action: 'clearAllClosedCookies'
+}
+
+type RequestAction = SaveCookiesRequest | LoadCookiesRequest | ClearCookiesRequest | SaveAllCookiesRequest | LoadAllCookiesRequest | ClearAllClosedCookiesRequest
 
 // chrome.storage.sync.clear(function () {
 //   console.log('所有云端同步数据已清除')
@@ -105,12 +109,13 @@ type RequestAction = SaveCookiesRequest | LoadCookiesRequest | ClearCookiesReque
 
 //以下代码中打开option页用于调试
 chrome.runtime.onInstalled.addListener(function (details) {
-  if (details.reason === 'install' || details.reason === 'update') {
+  if (details.reason === 'install') {
+    //|| details.reason === 'update'
     chrome.runtime.openOptionsPage()
   }
 })
 
-chrome.storage.sync.set({ trackedDomains: JSON.stringify(['kaggle.com', 'saturnenterprise.io', 'twitter.com']) })
+chrome.storage.sync.set({ trackedDomains: JSON.stringify(['kaggle.com', 'saturnenterprise.io', 'twitter.com', 'bilibili.com']) })
 
 //accounts存放在local，domains存放在sync
 chrome.storage.local.get('accounts', function (result) {
@@ -150,7 +155,9 @@ function getURLFromAccountKey(accountKey: string): string {
 
 //每次重新打开浏览器插件时，需要检测一遍这个浏览器窗口的所有标签页，看是否和我现在账户列表里的域名加标签位置的域名是否匹配,如果不匹配，就把账户里对应的选项给删除 8.14
 //这里如果初始化的话应该把ID全部重置为一个负值(-1)，这样就不会和正常的ID冲突了 8.22
-function checkTabsAndCleanAccounts() {
+async function checkTabsAndCleanAccounts() {
+  const result = await chrome.storage.local.get('accounts')
+  accounts = result.accounts || {}
   // 创建一个新的对象来存储修改后的账户
   const updatedAccounts: Record<string, Account> = {}
   Object.keys(accounts).forEach((accountKey) => {
@@ -215,6 +222,13 @@ chrome.runtime.onMessage.addListener(async (request: RequestAction, _sender: chr
         const rootDomain = getRootDomain(url)
         if (rootDomain) {
           await loadCookies(rootDomain, accounts[request.account].cookies)
+          //加载好cookies之后要刷新页面 8.25
+          const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+          if (tabs[0] && tabs[0].id) {
+            await chrome.tabs.reload(tabs[0].id)
+          } else {
+            console.log('tabs[0]不存在，无法刷新页面 in loadCookies manually.')
+          }
         } else {
           console.error('Unable to get rootDomain from url in loadCookies manually.')
         }
@@ -236,9 +250,9 @@ chrome.runtime.onMessage.addListener(async (request: RequestAction, _sender: chr
   } else if (request.action == 'saveAllCookies') {
     saveUniqueAccounts(accounts)
   } else if (request.action == 'loadAllCookies') {
-    const data = await chrome.storage.local.get('savedAccounts')
-    console.log('data.savedAccounts in Service Woker', data.savedAccounts)
-    accounts = data.savedAccounts || {}
+    const result = await chrome.storage.local.get('savedAccounts')
+    console.log('data.savedAccounts in Service Woker', result.savedAccounts)
+    accounts = result.savedAccounts || {}
     const newAccounts: Record<string, Account> = {}
 
     for (const [key, account] of Object.entries(accounts)) {
@@ -253,6 +267,8 @@ chrome.runtime.onMessage.addListener(async (request: RequestAction, _sender: chr
     await chrome.storage.local.set({ savedAccounts: newAccounts })
     //接下来不需要手动更新accounts，因为这个属性是被监听的，它会自动更新
     console.log('Updated accounts saved successfully!')
+  } else if (request.action == 'clearAllClosedCookies') {
+    removeClosedAccounts()
   }
 })
 
@@ -275,7 +291,8 @@ function areAccountsSame(account1: Account, account2: Account): boolean {
 
 async function saveUniqueAccounts(accounts: Record<string, Account>): Promise<void> {
   const uniqueAccounts: Record<string, Account> = {}
-
+  const result = await chrome.storage.local.get('accounts')
+  accounts = result.accounts || {}
   for (const [key1, account1] of Object.entries(accounts)) {
     let isUnique = true
 
@@ -311,7 +328,35 @@ chrome.tabs.onActivated.addListener(function (activeInfo) {
   handleTabChange(activeInfo.tabId)
 })
 
-// 下面的代码可以在后期的提高efficiency，但是我现在先不使用
+async function removeClosedAccounts() {
+    const result = await chrome.storage.local.get('accounts')
+    accounts = result.accounts || {}
+  // 创建一个新的对象来存储未被删除的账户
+  const updatedAccounts: Record<string, Account> = {}
+
+  // 遍历现有的账户
+  for (const [key, account] of Object.entries(accounts)) {
+    // 如果账户没有被标记为删除，则添加到新的对象中
+    if (!account.closed) {
+      updatedAccounts[key] = account
+    }
+  }
+
+  // 更新全局变量
+  accounts = updatedAccounts
+
+  // 将更新后的账户列表保存回插件的存储
+  await chrome.storage.local.set({ accounts: updatedAccounts })
+  console.log('已经删除所有标记为删除的账户 in removeDeletedAccounts')
+}
+
+chrome.windows.onRemoved.addListener(function (windowId) {
+  removeClosedAccounts()
+  console.log('已经删除所有标记为closed的账户 in onRemoved')
+  console.log(`Window with ID ${windowId} has been removed.`)
+})
+
+// 下面的代码可以在后期的提高efficiency，但是我现在先不使用, 其实还是原来的方法效率高，因为原来是离开网页的时候就把cookies给删除加快了速度，但是原来不能处理用户进入了需要追踪域名后离开域名又再次进入的情况（因为没有触发onactivated）
 //需要实现的功能，如果当前tab已经在账户中有对应的键了，那就不要再删除了,因为能够自动更新
 // const tabDomains: Record<number, string> = {} // 用于存储每个选项卡的当前URL
 
@@ -321,14 +366,27 @@ chrome.tabs.onActivated.addListener(function (activeInfo) {
 //     const oldDomain = tabDomains[tabId] // 获取该选项卡的之前的URL
 
 //     if ((!oldDomain || oldDomain !== newDomain) && trackedDomains.includes(newDomain)) {
-//       console.log(
-//         `Domain has changed from ${oldDomain} to ${newDomain}, so it will trigger handleTabChange`
-//       )
+//       console.log(`Domain has changed from ${oldDomain} to ${newDomain}, so it will trigger handleTabChange`)
 
+//       chrome.runtime.sendMessage({ action: 'showMask' }) // 显示遮罩层
 //       handleTabChange(tabId)
 //     }
-
 //     tabDomains[tabId] = newDomain // 更新URL
+//   }
+// })
+
+// const tabsState: Record<number, boolean> = {}
+// chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+//   if (changeInfo.url && changeInfo.url.includes('www.example.com')) {
+//     // 检查此标签页是否已经访问过特定域名
+//     if (!tabsState[tabId]) {
+//       // 如果是第一次访问，记录状态并触发代码
+//       tabsState[tabId] = true
+//       console.log('First time accessing www.example.com in this tab')
+//       // 在此处触发你的代码
+//     } else {
+//       console.log('Not the first time accessing www.example.com in this tab')
+//     }
 //   }
 // })
 
@@ -338,16 +396,16 @@ chrome.tabs.onActivated.addListener(function (activeInfo) {
 // })
 
 // 创建一个对象来存储选项卡的索引信息
-const tabIndexMap: {
-  [tabId: number]: { url: string | undefined; index: number }
-} = {}
+// const tabIndexMap: {
+//   [tabId: number]: { url: string | undefined; index: number }
+// } = {}
 
-// 监听选项卡更新事件，存储选项卡索引
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (typeof tab.index !== 'undefined') {
-    tabIndexMap[tabId] = { url: tab.url, index: tab.index }
-  }
-})
+// // 监听选项卡更新事件，存储选项卡索引
+// chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+//   if (typeof tab.index !== 'undefined') {
+//     tabIndexMap[tabId] = { url: tab.url, index: tab.index }
+//   }
+// })
 
 function extractTabIdFromKey(key: string, modify = false) {
   const keyParts = key.split('-')
@@ -358,14 +416,17 @@ function extractTabIdFromKey(key: string, modify = false) {
 }
 
 const modifyTabIdFromKey = extractTabIdFromKey
+
 // Handle tab closure events
 chrome.tabs.onRemoved.addListener(async function (tabId, _removeInfo) {
   try {
+        const result = await chrome.storage.local.get('accounts')
+        accounts = result.accounts || {}
     for (const key in accounts) {
       const storedTabId = extractTabIdFromKey(key)
       if (storedTabId === String(tabId)) {
         // delete accounts[key]
-        accounts[key].deleted = true
+        accounts[key].closed = true
       }
     }
     // 存储更新后的`accounts`对象
@@ -379,11 +440,15 @@ chrome.tabs.onRemoved.addListener(async function (tabId, _removeInfo) {
 async function handleTabChange(tabId: number) {
   // If there is a currently active tab, save its cookies
   try {
+            const result = await chrome.storage.local.get('accounts')
+            accounts = result.accounts || {}
     if (currentTabId !== null) {
       const tab = await chrome.tabs.get(currentTabId)
-      console.log('tab.url', tab.url)
+      console.log('The tab we have just left:', tab.url)
 
       const [rootDomain, key] = processDomain(tab) as [string, string]
+      // chrome.tabs.sendMessage(tabId, { action: 'showMask' }) // To show the mask in the content script, corresponding with onUpdated 8.26
+
       await saveCurrentCookies(rootDomain, key)
       console.log('handleTabChange中saveCurrentCookies已触发')
 
@@ -400,18 +465,25 @@ async function handleTabChange(tabId: number) {
 
   // Update the currently active tab ID
   currentTabId = tabId
+  //If the code below can't load cookies, then selected account is empty
+  await chrome.storage.sync.set({ selectedAccount: '' })
 
   try {
     // Get the URL and index of the newly activated tab
     const tab = await chrome.tabs.get(currentTabId)
     const [rootDomain, key] = processDomain(tab) as [string, string]
-
-    //让popup页面显示当前所在的账户，popup页面的显示是通过sync.get来实现的(由于每次打开会自动获取，所以不需要持续监听)
-    await chrome.storage.sync.set({ selectedAccount: key })
-
+    //make new links only open in the current tab 8.26
+    await modifyLinksInTab(tabId)
     // Load the appropriate cookies
     if (key in accounts && accounts[key]) {
+      //让popup页面显示当前所在的账户，popup页面的显示是通过sync.get来实现的(由于每次打开会自动获取，所以不需要持续监听) 为什么要写把这个放在if语句里面?因为这说明这是一个新打开的页面,暂时不保存可以方便用户创建自己的账户
+      await chrome.storage.sync.set({ selectedAccount: key })
+      await injectMaskScript(tabId)
+
       await loadCookies(rootDomain, accounts[key].cookies)
+
+      // chrome.tabs.sendMessage(tabId, { action: 'hideMask' }) // To hide the mask in the content script, corresponding with onUpdated 8.26
+      await removeMaskScript(tabId)
     } else {
       console.log('域名为追踪域名，但是当前域名-索引没有在保存账户中,所以无法从中加载cookies')
     }
@@ -423,22 +495,24 @@ async function handleTabChange(tabId: number) {
 // Save the current cookies for the specified tab
 async function saveCurrentCookies(rootDomain: string, key: string, manualSave: boolean | string = false): Promise<void> {
   try {
+            const result = await chrome.storage.local.get('accounts')
+            accounts = result.accounts || {}
     // Save the current cookies for this URL and tab index
     const cookies = await chrome.cookies.getAll({ domain: rootDomain })
 
+    // 确保 accounts[key] 已初始化
+    accounts[key] = accounts[key] || {}
     accounts[key].cookies = cookies
-    accounts[key].manualSave = !!manualSave
-
+    //When we use savecookies manually, we should reset the value of manualsave
     if (typeof manualSave == 'string') {
       //在手动保存的时候会把 Account的key给传进来,自动保存为正常的boolen
-      accounts[key].cookies = cookies
       accounts[key].manualSave = !!manualSave
     }
     console.log('成功保存cookie, account key为:', key)
 
     await chrome.storage.local.set({ accounts: accounts })
   } catch (error) {
-    console.log('An error occurred in saveCurrentCookies:', error)
+    console.log('An error occurred in saveCurrentCookies. Notice this error may cause the function not work:', error)
   }
 }
 
@@ -488,6 +562,8 @@ async function loadCookies(rootDomain: string, cookies: chrome.cookies.Cookie[])
         console.log('以下cookie将要被设置:', fixedCookie)
         await chrome.cookies.set(fixedCookie)
         console.log('Cookie set successfully in loadcookies!')
+      } else {
+        console.log('%c Cookie already exists, skip setting.', 'background: #ff0000; color: #fff')
       }
     })
 
@@ -530,6 +606,9 @@ async function clearCookiesForDomain(domain: string) {
   }
 }
 
+chrome.tabs.onCreated.addListener(function (tab) {
+  chrome.storage.sync.set({ selectedAccount: '' })
+})
 //下面的是不行的，因为创造的时候，它是创造一个空白标签，所以是没有用
 // 监听标签页的创建事件
 // chrome.tabs.onCreated.addListener(function(tab) {
@@ -606,46 +685,46 @@ async function clearCookiesForDomain(domain: string) {
 //   })
 // })
 
-async function updateRemainingIndexes(windowId: number, oldPosition: number, newPosition = -1): Promise<void> {
-  try {
-    const tabs = await chrome.tabs.query({ windowId: windowId })
-    tabs.forEach(function (tab) {
-      const [rootDomain, key]: [string, string] = processDomain(tab) as [string, string]
+// async function updateRemainingIndexes(windowId: number, oldPosition: number, newPosition = -1): Promise<void> {
+//   try {
+//     const tabs = await chrome.tabs.query({ windowId: windowId })
+//     tabs.forEach(function (tab) {
+//       const [rootDomain, key]: [string, string] = processDomain(tab) as [string, string]
 
-      if (newPosition === -1) {
-        // Handle detachment and attachment
-        //应该是旧的窗口，>的都要减一，新的窗口，>的都要加一
-        if (tab.index > oldPosition) {
-          updateKey(rootDomain, tab.index, tab.index - 1)
-        }
-      } else {
-        // Handle movement within the same window
-        if (newPosition > oldPosition) {
-          if (tab.index > oldPosition && tab.index <= newPosition) {
-            updateKey(rootDomain, tab.index, tab.index - 1)
-          }
-        } else {
-          if (tab.index >= newPosition && tab.index < oldPosition) {
-            updateKey(rootDomain, tab.index, tab.index + 1)
-          }
-        }
-      }
-    })
-    chrome.storage.local.set({ accounts: accounts })
-  } catch (error) {
-    console.log('An error occurred in updateRemainingIndexes:', error)
-  }
-}
+//       if (newPosition === -1) {
+//         // Handle detachment and attachment
+//         //应该是旧的窗口，>的都要减一，新的窗口，>的都要加一
+//         if (tab.index > oldPosition) {
+//           updateKey(rootDomain, tab.index, tab.index - 1)
+//         }
+//       } else {
+//         // Handle movement within the same window
+//         if (newPosition > oldPosition) {
+//           if (tab.index > oldPosition && tab.index <= newPosition) {
+//             updateKey(rootDomain, tab.index, tab.index - 1)
+//           }
+//         } else {
+//           if (tab.index >= newPosition && tab.index < oldPosition) {
+//             updateKey(rootDomain, tab.index, tab.index + 1)
+//           }
+//         }
+//       }
+//     })
+//     chrome.storage.local.set({ accounts: accounts })
+//   } catch (error) {
+//     console.log('An error occurred in updateRemainingIndexes:', error)
+//   }
+// }
 
-function updateKey(rootDomain: string, oldIndex: number, newIndex: number): void {
-  const oldKey = `${rootDomain}-${oldIndex}`
-  const newKey = `${rootDomain}-${newIndex}`
+// function updateKey(rootDomain: string, oldIndex: number, newIndex: number): void {
+//   const oldKey = `${rootDomain}-${oldIndex}`
+//   const newKey = `${rootDomain}-${newIndex}`
 
-  if (oldKey in accounts) {
-    accounts[newKey] = accounts[oldKey]
-    delete accounts[oldKey]
-  }
-}
+//   if (oldKey in accounts) {
+//     accounts[newKey] = accounts[oldKey]
+//     delete accounts[oldKey]
+//   }
+// }
 
 function isValidURL(url: string): boolean {
   try {
@@ -709,6 +788,103 @@ function getRootDomain(url: string): string | null {
 
 function isSpecialPage(pendingUrl: string) {
   return pendingUrl.startsWith('chrome://') || pendingUrl.startsWith('about:') || pendingUrl.startsWith('file://')
+}
+
+async function injectMaskScript(tabId: number) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: function () {
+        // 创建遮罩层div
+        const mask = document.createElement('div')
+        mask.id = 'loading-mask'
+        mask.style.position = 'fixed'
+        mask.style.top = '0'
+        mask.style.right = '0'
+        mask.style.bottom = '0'
+        mask.style.left = '0'
+        mask.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'
+        mask.style.display = 'flex'
+        mask.style.alignItems = 'center'
+        mask.style.justifyContent = 'center'
+        mask.style.zIndex = '1000'
+
+        // 创建加载指示器div
+        const loader = document.createElement('div')
+        loader.className = 'loader'
+        loader.style.width = '24px'
+        loader.style.height = '24px'
+        loader.style.border = '4px solid'
+        loader.style.borderTop = '4px solid gray'
+        loader.style.borderRadius = '50%'
+        loader.style.animation = 'spin 1s linear infinite'
+
+        // 添加加载指示器到遮罩层
+        mask.appendChild(loader)
+
+        // 添加遮罩层到页面
+        document.body.appendChild(mask)
+
+        // 可选：定义旋转动画
+        const style = document.createElement('style')
+        style.innerHTML = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`
+        document.head.appendChild(style)
+      },
+    })
+    console.log('Mask script injected, handleTabChange中injectMaskScript触发')
+  } catch (error) {
+    console.log('Failed to inject mask script', error)
+  }
+}
+
+async function removeMaskScript(tabId: number) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: function () {
+        const mask = document.getElementById('loading-mask')
+        if (mask) {
+          mask.remove()
+        }
+      },
+    })
+    console.log('Mask script removed, handleTabChange中removeMaskScript触发')
+  } catch (error) {
+    console.log('Failed to remove mask script', error)
+  }
+}
+
+async function modifyLinksInTab(tabId: number) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: function () {
+        const links = document.querySelectorAll('a')
+        links.forEach((link) => {
+          link.target = '_self' // 设置或重写 target 属性，确保在当前窗口打开
+          console.log('Hello world=-------------------------------------------')
+        })
+        document.addEventListener('DOMContentLoaded', function () {
+          const links = document.querySelectorAll('a')
+          links.forEach((link) => {
+            link.addEventListener('click', function (event) {
+              event.preventDefault() // 阻止默认行为
+              window.location.href = link.href // 在当前窗口中导航
+              console.log('Hello world=-------------------------------------------')
+            })
+          })
+        })
+      },
+    })
+    console.log('Links modified to open in the same tab.')
+  } catch (error) {
+    console.log('Failed to modify links', error)
+  }
 }
 
 // function fixCookieDomainAndUrl(cookie: CookieType) {

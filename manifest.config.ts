@@ -24,19 +24,21 @@ export default defineManifest(async (env) => ({
   background: {
     service_worker: 'src/background/index.ts',
   },
-
+  // content_scripts: [
+  //   {
+  //     all_frames: false,
+  //     js: ['src/content-script/index.ts'],
+  //     matches: ['*://*/*'],
+  //     // matches:[ '*://www.kaggle.com/*'],
+  //     run_at: 'document_end',
+  //   },
+  // ],
   host_permissions: ['*://*/*'],
   icons: {
     '128': 'src/assets/icon.png',
   },
   options_page: 'src/options/index.html',
-  permissions: [
-    'cookies',
-    'storage',
-    'activeTab',
-    'notifications',
-    'tabs',
-  ],
+  permissions: ['cookies', 'storage', 'activeTab',  'identity', 'notifications', 'tabs', 'scripting'],
   web_accessible_resources: [
     {
       matches: ['*://*/*'],

@@ -13,7 +13,7 @@
         <select id="accountSelect" v-model="selectedAccount" class="form-select block w-full mt-1 mr-2">
           <option v-for="(accountData, accountKey) in accounts" :key="accountKey" :value="accountKey">
             {{ accountKey }} {{ accountData && accountData.manualSave ? '[Manually Saved]' : '' }}
-            {{ accountData && accountData.deleted ? '[closed]' : '' }}
+            {{ accountData && accountData.closed ? '[closed]' : '' }}
           </option>
         </select>
         <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-2"
@@ -25,6 +25,8 @@
         </button>
         <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mr-2"
           @click="deleteAllAccounts">Delete All Account</button>
+          <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mr-2"
+            @click="clearAllClosedCookies">Clear All Closed Cookies</button>
         <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2" @click="clearCookies">
           Clear Cookies
         </button>
@@ -230,6 +232,12 @@ const deleteAllAccounts = () => {
       }
     });
   }
+};
+const clearAllClosedCookies = () => {
+  // 发送清除Cookie的请求到背景脚本
+  chrome.runtime.sendMessage({ action: 'clearAllClosedCookies' }, () => {
+    console.log('Closed cookies cleared');
+  });
 };
 
 const clearCookies = () => {
