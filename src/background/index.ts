@@ -11,36 +11,10 @@ interface Account {
 }
 
 // 定义变量的类型
-let accounts: Record<string, Account> = {}
-let trackedDomains: string[] = []
-
-interface SaveCookiesRequest {
-  action: 'saveCookies'
-  account: string
-}
-
-interface LoadCookiesRequest {
-  action: 'loadCookies'
-  account: string
-}
-
-interface ClearCookiesRequest {
-  action: 'clearCookies'
-}
-
-interface SaveAllCookiesRequest {
-  action: 'saveAllCookies'
-}
-
-interface LoadAllCookiesRequest {
-  action: 'loadAllCookies'
-}
-
-interface ClearAllClosedCookiesRequest {
-  action: 'clearAllClosedCookies'
-}
-
-type RequestAction = SaveCookiesRequest | LoadCookiesRequest | ClearCookiesRequest | SaveAllCookiesRequest | LoadAllCookiesRequest | ClearAllClosedCookiesRequest
+// let accounts: Record<string, Account> = {}
+// let trackedDomains: string[] = []
+// let currentTabId: number | null = null
+// let clearCookiesEnabled// 开关状态
 
 // chrome.storage.sync.clear(function () {
 //   console.log('所有云端同步数据已清除')
@@ -61,17 +35,18 @@ chrome.runtime.onInstalled.addListener(function (details) {
 chrome.storage.sync.set({ trackedDomains: JSON.stringify(['kaggle.com', 'saturnenterprise.io', 'twitter.com', 'bilibili.com']) })
 
 //accounts存放在local，domains存放在sync
-async function getStorageData(storageKey: string, defaultValue: any = {}): Promise<any> {
+async function getStorageData<T>(storageKey: string, defaultValue: T = {} as T): Promise<T> {
   try {
     const result = await chrome.storage.local.get(storageKey)
-    return result[storageKey] || defaultValue
+    return (result[storageKey] || defaultValue) as T
   } catch (error) {
     console.error(`Error fetching ${storageKey}:`, error)
     return defaultValue
   }
 }
 
-async function getTrackedDomains() {
+
+async function getTrackedDomains(): Promise<string[]> {
   try {
     const result = await chrome.storage.sync.get('trackedDomains')
     return JSON.parse(result.trackedDomains || '[]')
@@ -88,8 +63,8 @@ function getURLFromAccountKey(accountKey: string): string {
 //每次重新打开浏览器插件时，需要检测一遍这个浏览器窗口的所有标签页，看是否和我现在账户列表里的域名加标签位置的域名是否匹配,如果不匹配，就把账户里对应的选项给删除 8.14
 //这里如果初始化的话应该把ID全部重置为一个负值(-1)，这样就不会和正常的ID冲突了 8.22
 async function checkTabsAndCleanAccounts() {
-  const result = await chrome.storage.local.get('accounts')
-  accounts = result.accounts || {}
+  const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
+
   // 创建一个新的对象来存储修改后的账户
   const updatedAccounts: Record<string, Account> = {}
   Object.keys(accounts).forEach((accountKey) => {
@@ -102,7 +77,7 @@ async function checkTabsAndCleanAccounts() {
   chrome.storage.local.set({ accounts: updatedAccounts })
 
   // 更新全局变量
-  accounts = updatedAccounts
+  // accounts = updatedAccounts
 }
 // 在插件启动时调用此函数
 chrome.runtime.onStartup.addListener(checkTabsAndCleanAccounts)
@@ -111,7 +86,7 @@ chrome.runtime.onStartup.addListener(checkTabsAndCleanAccounts)
 // checkTabsAndCleanAccounts()
 
 //可能还少检查了一步，如果cookies的domain和你从网址中读取的不一样,我觉得最好是在你手动读取的domain前面加一个点
-chrome.runtime.onMessage.addListener(async (request: RequestAction, _sender: chrome.runtime.MessageSender, _sendResponse: (response: any) => void) => {
+chrome.runtime.onMessage.addListener(async (request: any, _sender: chrome.runtime.MessageSender, _sendResponse: (response: any) => void) => {
   if (request.action == 'saveCookies') {
     try {
       console.log('手动saveCookies已经触发')
@@ -125,7 +100,7 @@ chrome.runtime.onMessage.addListener(async (request: RequestAction, _sender: chr
         console.error('No active tab found in current window in savecookies manually.')
         return
       }
-      const [rootDomain, key, isNotInDomain] = processDomain(tabs[0], false) as [string, string, boolean]
+      const [rootDomain, key, isNotInDomain] = await processDomain(tabs[0], false) as [string, string, boolean]
       if (isNotInDomain) {
         const trackedDomains = await getTrackedDomains() //8.27
         trackedDomains.push(rootDomain as string)
@@ -135,7 +110,7 @@ chrome.runtime.onMessage.addListener(async (request: RequestAction, _sender: chr
       } else {
         console.log('this domain is not added in savecookies manually because it has been added before')
       }
-
+      const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
       if (request.account in accounts) {
         await saveCurrentCookies(rootDomain, key, request.account)
       } else {
@@ -147,7 +122,7 @@ chrome.runtime.onMessage.addListener(async (request: RequestAction, _sender: chr
   } else if (request.action == 'loadCookies') {
     console.log('手动loadCookies已经触发')
     try {
-      accounts = await getStorageData('accounts') //8.27
+      const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
       if (request.account in accounts && accounts[request.account]) {
         // Get the URL for the account
         const url = getURLFromAccountKey(request.account)
@@ -178,15 +153,16 @@ chrome.runtime.onMessage.addListener(async (request: RequestAction, _sender: chr
       console.error('No active tab found in current window in savecookies manually.')
       return
     }
-    const [rootDomain, key] = processDomain(tabs[0]) as [string, string]
+    const [rootDomain, key] = await processDomain(tabs[0]) as [string, string]
     clearCookiesForDomain(rootDomain)
   } else if (request.action == 'saveAllCookies') {
+    const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
     saveUniqueAccounts(accounts)
   } else if (request.action == 'loadAllCookies') {
     handleLoadAllCookies()
   } else if (request.action == 'clearAllClosedCookies') {
     removeClosedAccounts()
-  }
+  } 
 })
 
 async function createTabForAccount(account: Account) {
@@ -234,7 +210,6 @@ function areAccountsSame(account1: Account, account2: Account): boolean {
 
 async function saveUniqueAccounts(accounts: Record<string, Account>): Promise<void> {
   const uniqueAccounts: Record<string, Account> = {}
-  accounts = await getStorageData('accounts')
   for (const [key1, account1] of Object.entries(accounts)) {
     let isUnique = true
 
@@ -255,16 +230,16 @@ async function saveUniqueAccounts(accounts: Record<string, Account>): Promise<vo
   console.log('Unique accounts saved successfully!')
 }
 
-let clearCookiesEnabled// 开关状态
+
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.clearCookiesEnabled !== undefined) {
-    clearCookiesEnabled = message.clearCookiesEnabled // 更新开关状态
+    const clearCookiesEnabled = message.clearCookiesEnabled // 更新开关状态
     chrome.storage.local.set({ clearCookiesEnabled: clearCookiesEnabled }) // 保存开关状态
   }
 })
 
-let currentTabId: number | null = null
+
 
 //这段代码的作用是当用户离开网页的时候，保存这个网页cookie，同时在进入的网页加载new网页的cookie
 chrome.tabs.onActivated.addListener(function (activeInfo) {
@@ -272,7 +247,7 @@ chrome.tabs.onActivated.addListener(function (activeInfo) {
 })
 
 async function removeClosedAccounts() {
-  accounts = await getStorageData('accounts')
+  const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
   // 创建一个新的对象来存储未被删除的账户
   const updatedAccounts: Record<string, Account> = {}
 
@@ -283,21 +258,17 @@ async function removeClosedAccounts() {
       updatedAccounts[key] = account
     }
   }
-
-  // 更新全局变量
-  accounts = updatedAccounts
-
   // 将更新后的账户列表保存回插件的存储
   await chrome.storage.local.set({ accounts: updatedAccounts })
   console.log('已经删除所有标记为删除的账户 in removeDeletedAccounts')
 }
 
-// todo This function should be triggered manually 8.27
-chrome.windows.onRemoved.addListener(function (windowId) {
-  removeClosedAccounts()
-  console.log('已经删除所有标记为closed的账户 in onRemoved')
-  console.log(`Window with ID ${windowId} has been removed.`)
-})
+//This function should be triggered manually 
+// chrome.windows.onRemoved.addListener(function (windowId) {
+//   removeClosedAccounts()
+//   console.log('已经删除所有标记为closed的账户 in onRemoved')
+//   console.log(`Window with ID ${windowId} has been removed.`)
+// })
 
 
 
@@ -314,7 +285,7 @@ const modifyTabIdFromKey = extractTabIdFromKey
 // Handle tab closure events
 chrome.tabs.onRemoved.addListener(async function (tabId, _removeInfo) {
   try {
-    accounts = await getStorageData('accounts') //8.27
+    const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
     for (const key in accounts) {
       const storedTabId = extractTabIdFromKey(key)
       if (storedTabId === String(tabId)) {
@@ -331,17 +302,20 @@ chrome.tabs.onRemoved.addListener(async function (tabId, _removeInfo) {
 
 //这段代码的功能是激活新的tab时,先保存旧的页面的 cookies，然后清除旧的页面的cookies，然后加载新的页面的cookies
 async function handleTabChange(tabId: number) {
-  // If there is a currently active tab, save its cookies
+  let currentTabId: number | null = null
+  let clearCookiesEnabled = false
+  let accounts: Record<string, Account> = {}
   try {
-    accounts = await getStorageData('accounts') //8.27
-    currentTabId = await getStorageData('currentTabId', null) //8.27
-    clearCookiesEnabled = await getStorageData('clearCookiesEnabled', false) //8.27
+    // If there is a currently active tab, save its cookies
+    currentTabId = await getStorageData<number | null>('currentTabId', null) //8.27
+    clearCookiesEnabled = await getStorageData<boolean>('clearCookiesEnabled', false) //8.27
+    accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
 
     if (currentTabId !== null) {
       const tab = await chrome.tabs.get(currentTabId)
       console.log('The tab we have just left:', tab.url)
 
-      const [rootDomain, key] = processDomain(tab) as [string, string]
+      const [rootDomain, key] = await processDomain(tab) as [string, string]
       // chrome.tabs.sendMessage(tabId, { action: 'showMask' }) // To show the mask in the content script, corresponding with onUpdated 8.26
 
       await saveCurrentCookies(rootDomain, key)
@@ -366,7 +340,7 @@ async function handleTabChange(tabId: number) {
   try {
     // Get the URL and index of the newly activated tab
     const tab = await chrome.tabs.get(currentTabId)
-    const [rootDomain, key] = processDomain(tab) as [string, string]
+    const [rootDomain, key] = await processDomain(tab) as [string, string]
     //make new links only open in the current tab 8.26
     await modifyLinksInTab(tabId)
     // Load the appropriate cookies
@@ -390,7 +364,7 @@ async function handleTabChange(tabId: number) {
 // Save the current cookies for the specified tab
 async function saveCurrentCookies(rootDomain: string, key: string, manualSave: boolean | string = false): Promise<void> {
   try {
-    accounts = await getStorageData('accounts') //8.27
+    const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
 
     // Save the current cookies for this URL and tab index
     const cookies = await chrome.cookies.getAll({ domain: rootDomain })
@@ -506,8 +480,6 @@ chrome.tabs.onCreated.addListener(function (tab) {
 })
 
 
-
-
 function isValidURL(url: string): boolean {
   try {
     new URL(url)
@@ -517,7 +489,7 @@ function isValidURL(url: string): boolean {
   }
 }
 
-function processDomain(tab: chrome.tabs.Tab, throwErrors = true): [string, string] | null | [string, string, boolean] {
+async function processDomain(tab: chrome.tabs.Tab, throwErrors = true): Promise<[string, string] | null | [string, string, boolean]> {
   if (!tab) {
     throw new Error('Tab not found in processDomain')
   }
@@ -539,6 +511,7 @@ function processDomain(tab: chrome.tabs.Tab, throwErrors = true): [string, strin
   if (!rootDomain) {
     throw new Error('Root domain not found in processDomain.')
   }
+  const trackedDomains = await getTrackedDomains() //8.27
 
   if (trackedDomains.includes(rootDomain)) {
     const key = `${rootDomain}-${tab.id}`

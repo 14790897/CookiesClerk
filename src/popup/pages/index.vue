@@ -171,12 +171,12 @@ const saveCookies = async () => {
       action: "saveCookies",
       account: selectedAccount.value,
     });
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: 'src/assets/icon.png', // 你的图标URL
-      title: 'save success',
-      message: 'success'
-    });
+    // chrome.notifications.create({
+    //   type: 'basic',
+    //   iconUrl: 'src/assets/icon.png', // 你的图标URL
+    //   title: 'save success',
+    //   message: 'success'
+    // });
   } else {
     alert("No account selected or created. Cannot save cookies.");
   }
