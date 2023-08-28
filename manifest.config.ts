@@ -38,7 +38,7 @@ export default defineManifest(async (env) => ({
     '128': 'src/assets/icon.png',
   },
   options_page: 'src/options/index.html',
-  permissions: ['cookies', 'storage', 'activeTab',  'identity', 'notifications', 'tabs', 'scripting'],
+  permissions: ['cookies', 'storage', 'activeTab', 'identity', 'notifications', 'tabs', 'scripting'],
   web_accessible_resources: [
     {
       matches: ['*://*/*'],
@@ -47,6 +47,10 @@ export default defineManifest(async (env) => ({
     {
       matches: ['*://*/*'],
       resources: ['src/content-script/iframe/index.html'],
+    },
+    {
+      matches: ['<all_urls>'],
+      resources: ['src/assets/*.png'],
     },
   ],
 }))

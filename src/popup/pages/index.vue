@@ -1,68 +1,78 @@
 <template>
-  <div class="container mx-auto p-8 ">
-    <h1 class="text-2xl font-bold mb-4">Cookie Clerk</h1>
+  <div class="container mx-auto p-2 ">
+    <h1 class="text-lg text-center font-bold mb-2">Cookie Clerk</h1>
 
-    <div class="flex flex-wrap mb-4">
+    <div class="flex-col">
       <!-- Account Management -->
-      <div class="border p-2 mb-2">
-
-        <h2 class="text-xl font-bold mb-2">Account Management</h2>
-
-        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2" @click="addAccount">Add
-          Account</button>
-        <select id="accountSelect" v-model="selectedAccount" class="form-select block w-full mt-1 mr-2">
-          <option v-for="(accountData, accountKey) in accounts" :key="accountKey" :value="accountKey">
-            {{ accountKey }} {{ accountData && accountData.manualSave ? '[Manually Saved]' : '' }}
-            {{ accountData && accountData.closed ? '[closed]' : '' }}
-          </option>
-        </select>
-        <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-2"
-          @click="saveCookies">Save Cookies</button>
-        <button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded mr-2"
-          @click="loadCookies">Load Cookies</button>
-        <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mr-2"
-          @click="deleteAccount">Delete Account
-        </button>
-        <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mr-2"
-          @click="deleteAllAccounts">Delete All Account</button>
-          <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mr-2"
-            @click="clearAllClosedCookies">Clear All Closed Cookies</button>
-        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2" @click="clearCookies">
-          Clear Cookies
-        </button>
-        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2" @click="saveAllCookies">
-          Save All Cookies</button>
-        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2" @click="loadAllCookies">
-          Load All Cookies</button>
+      <div class="border p-2 mb-2 flex-1">
+        <h2 class="text-base font-bold mb-2">Account Management</h2>
+        <div class="flex items-center mb-2">
+          <select id="accountSelect" v-model="selectedAccount" class="form-select  mt-1 mr-2">
+            <option v-for="(accountData, accountKey) in accounts" :key="accountKey" :value="accountKey">
+              {{ accountKey }} {{ accountData && accountData.manualSave ? '[Manually Saved]' : '' }}
+              {{ accountData && accountData.closed ? '[closed]' : '' }}
+            </option>
+          </select>
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2 "
+            @click="addAccount">Add</button>
+        </div>
+        
+        <div class="justify-center items-center ">
+          <button class="bg-green-500 hover:bg-green-700 text-white font-bold  rounded mr-2" @click="saveCookies"> <img
+              src="../../assets/SaveCookies.png" alt="Save Cookies Icon" title="Save Cookies" class="w-16 h-16 mr-2">
+          </button>
+          <button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold rounded mr-2" @click="loadCookies"><img
+              src="../../assets/LoadCookies.png" alt="Load Cookies Icon" title="Load Cookies"
+              class="w-16 h-16 mr-2"></button>
+          <button class="bg-red-500 hover:bg-red-700 text-white font-bold  rounded mr-2" @click="deleteAccount"><img
+              src="../../assets/DeleteAccount.png" alt="Delete Account Icon" title="Delete Account"
+              class="w-16 h-16 mr-2">
+          </button>
+          <button class="bg-red-500 hover:bg-red-700 text-white font-bold rounded mr-2" @click="deleteAllAccounts"><img
+              src="../../assets/DeleteAllAccount.png" alt="Delete All Account Icon" title="Delete All Account"
+              class="w-16 h-16 mr-2"></button>
+          <button class="bg-red-500 hover:bg-red-700 text-white font-bold rounded mr-2"
+            @click="clearAllClosedCookies"><img src="../../assets/ClearAllClosedCookies.png"
+              alt="Clear All Closed Cookies Icon" title="Clear All Closed Cookies" class="w-16 h-16 mr-2"></button>
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2" @click="clearCookies">
+            <img src="../../assets/ClearCookies.png" alt="Clear Cookies Icon" title="Clear Cookies"
+              class="w-16 h-16 mr-2">
+          </button>
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2" @click="saveAllCookies">
+            <img src="../../assets/SaveAllCookies.png" alt="Save All Cookies Icon" title="Save All Cookies"
+              class="w-16 h-16 mr-2"></button>
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2" @click="loadAllCookies">
+            <img src="../../assets/LoadAllCookies.png" alt="Load All Cookies Icon" title="Load All Cookies"
+              class="w-16 h-16 mr-2"></button>
+        </div>
       </div>
-    </div>
 
-    <!-- Domain Management -->
-    <div class="border p-2">
-      <h2 class="text-2xl font-bold mb-4">Tracked Domain Management</h2>
-      <div class="flex flex-wrap mb-4">
-        <input v-model="newDomain" type="text" placeholder="Add new domain" required
-          class="form-input block w-48 mt-1 mr-2">
-        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2"
-          @click="addDomain">Add</button>
+      <!-- Tracked Domain Management -->
+      <div class="border p-2 flex-1">
+        <h2 class="text-base font-bold mb-2">Tracked Domain Management</h2>
+        <div class="flex items-center mb-2">
+          <input v-model="newDomain" type="text" placeholder="Add new domain" required class="form-input w-48 mt-1 mr-2">
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold  py-2 px-4 rounded mr-2 "
+            @click="addDomain">Add</button>
+        </div>
         <label class="flex items-center space-x-2">
           <input v-model="clearCookiesEnabled" type="checkbox" />
           <span>开启对追踪域名的新选项卡清除cookie功能</span>
         </label>
+        <ul id="domain-list" class="list-inside list-decimal">
+          <li v-for="(domain, index) in domains" :key="domain" class="mb-2">
+            {{ domain }}
+            <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
+              @click="deleteDomain(index)">Delete</button>
+          </li>
+        </ul>
       </div>
-      <ul id="domain-list" class="list-inside list-decimal">
-        <li v-for="(domain, index) in domains" :key="domain" class="mb-2">
-          {{ domain }}
-          <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
-            @click="deleteDomain(index)">Delete</button>
-        </li>
-      </ul>
     </div>
   </div>
 
-  <div class="text-center m-4">
+  <!-- <div class="text-center m-4">
     <RouterLink to="/about">About</RouterLink>
-  </div>
+  </div> -->
 </template>
 
 
@@ -138,12 +148,12 @@ chrome.storage.onChanged.addListener(function (changes, areaName) {
   console.log('domains.value in popup', toRaw(domains.value))
 })
 
-chrome.notifications.create({
-  type: 'basic',
-  iconUrl: 'src/assets/icon.png', // 你的图标URL
-  title: 'save success',
-  message: 'success'
-});
+// chrome.notifications.create({
+//   type: 'basic',
+//   iconUrl: 'src/assets/icon.png', // 你的图标URL
+//   title: 'save success',
+//   message: 'success'
+// });
 
 const modifyAccountKey = (str: string) => {
   let regex = /-(\d+)$/;
