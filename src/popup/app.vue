@@ -20,7 +20,7 @@
         </div>
         <div>
           <span class="mr-2">Version: 1.0.0</span>
-          <a href="#" class="mr-2">Privacy Policy</a>
+          <a href="https://github.com/14790897/CookiesClerk/blob/main/src/assets/privacy%20policy.md" class="mr-2" target="_blank">Privacy Policy</a>
         </div>
       </div>
     </div>

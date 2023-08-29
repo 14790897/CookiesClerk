@@ -17,7 +17,7 @@ export default defineManifest(async (env) => ({
   // semver is OK in "version_name"
   version_name: version,
   manifest_version: 3,
-  // key: 'ekgmcbpgglflmgcfajnglpbcbdccnnje',
+  // key: 'ekgmcbpgglflmgczajnglpbcbdccdnje',
   action: {
     default_popup: 'src/popup/index.html',
   },

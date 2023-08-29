@@ -7,7 +7,7 @@
       <div class="border p-2 mb-2 flex-1">
         <h2 class="text-base font-bold mb-2">Account Management</h2>
         <div class="flex items-center mb-2">
-          <select id="accountSelect" v-model="selectedAccount" class="form-select  mt-1 mr-2">
+          <select id="accountSelect" v-model="selectedAccount" class="form-select  mt-1 mr-2" style="min-width: 200px;">
             <option v-for="(accountData, accountKey) in accounts" :key="accountKey" :value="accountKey">
               {{ accountKey }} {{ accountData && accountData.manualSave ? '[Manually Saved]' : '' }}
               {{ accountData && accountData.closed ? '[closed]' : '' }}
@@ -16,13 +16,14 @@
           <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2 "
             @click="addAccount">Add</button>
         </div>
-        
+
         <div class="justify-center items-center ">
           <button class="bg-green-500 hover:bg-green-700 text-white font-bold  rounded mr-2" @click="saveCookies"> <img
-              src="../../assets/SaveCookies.png" alt="Save Cookies Icon" title="Save Cookies" class="w-16 h-16 mr-2">
+              src="../../assets/SaveCookies.png" alt="Save Cookies Icon" title="Save Cookies To Account"
+              class="w-16 h-16 mr-2">
           </button>
           <button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold rounded mr-2" @click="loadCookies"><img
-              src="../../assets/LoadCookies.png" alt="Load Cookies Icon" title="Load Cookies"
+              src="../../assets/LoadCookies.png" alt="Load Cookies Icon" title="Load Cookies From Account"
               class="w-16 h-16 mr-2"></button>
           <button class="bg-red-500 hover:bg-red-700 text-white font-bold  rounded mr-2" @click="deleteAccount"><img
               src="../../assets/DeleteAccount.png" alt="Delete Account Icon" title="Delete Account"
@@ -82,7 +83,7 @@ const selectedAccount = ref<string | null>(null);
 const newDomain = ref<string>('');
 const domains = ref<string[]>([]);
 const accounts = ref<Record<string, any>>({});
-const clearCookiesEnabled = ref(false); // 设置一个反应性变量来追踪开关状态
+const clearCookiesEnabled = ref(true); // 设置一个反应性变量来追踪开关状态
 
 // 使用 watch 来监视 trackedDomains 的改变
 watch(domains, (newValue) => {
@@ -91,7 +92,7 @@ watch(domains, (newValue) => {
     if (chrome.runtime.lastError) {
       console.error('存储失败:', chrome.runtime.lastError);
     } else {
-      console.log('存储成功!');
+      console.log('存储成功 in watch domains!');
     }
   });
 });//, { immediate: true }
@@ -100,8 +101,8 @@ watch(selectedAccount, (newValue) => {
   chrome.storage.sync.set({ selectedAccount: newValue });
 });
 watch(clearCookiesEnabled, (newValue) => {
-  chrome.runtime.sendMessage({ clearCookiesEnabled: newValue });
-  chrome.storage.sync.set({ clearCookiesEnabled: newValue });
+  // chrome.runtime.sendMessage({ clearCookiesEnabled: newValue });
+  chrome.storage.local.set({ clearCookiesEnabled: newValue });
 });
 
 // 加载存储的selectedAccount值
@@ -109,8 +110,14 @@ chrome.storage.sync.get('selectedAccount', (data) => {
   selectedAccount.value = data.selectedAccount || null;
 });
 
-chrome.storage.sync.get('clearCookiesEnabled', (data) => {
-  clearCookiesEnabled.value = data.clearCookiesEnabled || true;
+chrome.storage.local.get('clearCookiesEnabled', (data) => {
+  // if(Object.keys(data.clearCookiesEnabled).length !== 0){
+  //   clearCookiesEnabled.value = data.clearCookiesEnabled;
+  // }
+  // else{
+  //   clearCookiesEnabled.value = false;
+  // }
+  clearCookiesEnabled.value = data.clearCookiesEnabled || false;//If you set true, then it will always be true when you open the popup 8.29
 });
 
 chrome.storage.local.get('accounts', (data) => {
@@ -137,6 +144,7 @@ chrome.storage.onChanged.addListener(function (changes, areaName) {
     accounts.value = changes.accounts.newValue || {};
   }
 })
+
 chrome.storage.onChanged.addListener(function (changes, areaName) {
   if (areaName === 'sync' && changes.trackedDomains) {
     // Update the local variable with the new value from storage
@@ -148,12 +156,7 @@ chrome.storage.onChanged.addListener(function (changes, areaName) {
   console.log('domains.value in popup', toRaw(domains.value))
 })
 
-// chrome.notifications.create({
-//   type: 'basic',
-//   iconUrl: 'src/assets/icon.png', // 你的图标URL
-//   title: 'save success',
-//   message: 'success'
-// });
+
 
 const modifyAccountKey = (str: string) => {
   let regex = /-(\d+)$/;
@@ -261,14 +264,13 @@ const saveAllCookies = () => {
   chrome.runtime.sendMessage({ action: 'saveAllCookies' }, () => {
     console.log('saveAllCookies');
   });
-
 };
 
 const loadAllCookies = () => {
-  chrome.runtime.sendMessage({ action: 'loadAllCookies' }, () => {
+  //loadSavedSelectedAccounts is set in option interface 8.28
+  chrome.runtime.sendMessage({ action: 'loadAllCookies', loadSavedSelectedAccounts: false }, () => {
     console.log('loadAllCookies');
   });
-
 };
 
 const addDomain = () => {
@@ -284,6 +286,8 @@ const addDomain = () => {
         return;
       }
       domains.value.push(rootDomain);
+        domains.value = [...domains.value]; // 触发 Watcher
+
       newDomain.value = '';
     } else {
       alert('Please enter a valid domain.没有获得根域名');
@@ -299,6 +303,8 @@ const addDomain = () => {
 
 const deleteDomain = (index: number) => {
   domains.value.splice(index, 1);
+  domains.value = [...domains.value]; // 触发 Watcher
+
 };
 
 const isValidDomain = (domain: string): boolean => {

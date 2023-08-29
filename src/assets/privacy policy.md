@@ -1,46 +1,3 @@
-# Privacy Policy for CookiesClerk
-
-## Last Updated: 8.28.2023
-
-### Introduction
-
-Thank you for choosing to use CookiesClerk. We take your privacy seriously and are committed to protecting your personal information. This Privacy Policy explains what information we collect, how we use it, and your rights in relation to it.
-
-### Information We Collect
-
-1. **Cookies Information**: Our plugin manages cookies for multiple accounts on the same website. We do not store these cookies; they are managed locally on your device.
-
-### How We Use Your Information
-
-1. **Cookies Management**: We use the cookies information to enable the plugin's functionality, which allows you to manage multiple accounts on the same website easily.
-
-### Sharing of Information
-
-We do not share any information with third parties. All data is stored and managed locally on your device.
-
-### Data Storage and Security
-
-All data is stored locally on your device. We do not have access to this data, nor do we store it on any external servers.
-
-### Your Rights
-
-You have the right to:
-
-- Access the information we have related to you.
-- Delete your information from the plugin.
-
-### Changes to This Policy
-
-We may update this Privacy Policy from time to time. Any changes will be posted on this page, and if the changes are significant, we will provide a more prominent notice.
-
-### Contact Us
-
-If you have any questions about this Privacy Policy, please contact us at 14790897abc@gmail.com.
-
-### Jurisdiction
-
-This Privacy Policy is governed by the laws of China.
-
 # CookiesClerk 的隐私政策
 
 ## 最后更新 2023.8.28
@@ -83,3 +40,46 @@ This Privacy Policy is governed by the laws of China.
 ### 管辖权
 
 本隐私政策受中国法律管辖。
+
+# Privacy Policy for CookiesClerk
+
+## Last Updated: 8.28.2023
+
+### Introduction
+
+Thank you for choosing to use CookiesClerk. We take your privacy seriously and are committed to protecting your personal information. This Privacy Policy explains what information we collect, how we use it, and your rights in relation to it.
+
+### Information We Collect
+
+1. **Cookies Information**: Our plugin manages cookies for multiple accounts on the same website. We do not store these cookies; they are managed locally on your device.
+
+### How We Use Your Information
+
+1. **Cookies Management**: We use the cookies information to enable the plugin's functionality, which allows you to manage multiple accounts on the same website easily.
+
+### Sharing of Information
+
+We do not share any information with third parties. All data is stored and managed locally on your device.
+
+### Data Storage and Security
+
+All data is stored locally on your device. We do not have access to this data, nor do we store it on any external servers.
+
+### Your Rights
+
+You have the right to:
+
+- Access the information we have related to you.
+- Delete your information from the plugin.
+
+### Changes to This Policy
+
+We may update this Privacy Policy from time to time. Any changes will be posted on this page, and if the changes are significant, we will provide a more prominent notice.
+
+### Contact Us
+
+If you have any questions about this Privacy Policy, please contact us at 14790897abc@gmail.com.
+
+### Jurisdiction
+
+This Privacy Policy is governed by the laws of China.
