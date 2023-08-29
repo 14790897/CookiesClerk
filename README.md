@@ -64,4 +64,4 @@ This project is licensed under the [MIT License](./LICENSE).
 If you have any questions or need assistance, please don't hesitate to contact us at [liuweiqing@liuweiqing.top](mailto:liuweiqing@liuweiqing.top).
 
 ## Credits
-Thanks https://github.com/mubaidr/vite-vue3-chrome-extension-v3/blob/master/README.md?plain=1
+Thanks https://github.com/mubaidr/vite-vue3-chrome-extension-v3
