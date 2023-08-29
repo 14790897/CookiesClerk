@@ -26,7 +26,7 @@ You can install CookiesClerk from the [Chrome Web Store](link-to-chrome-web-stor
 
 ## Contributing
     
-Contributions are welcome! If you find any bugs or want to suggest new features, feel free to [create an issue](link-to-issues) or submit a pull request.
+Contributions are welcome! If you find any bugs or want to suggest new features, feel free to [create an issue](https://github.com/14790897/CookiesClerk/issues) or submit a pull request.
 
 ## License
 
