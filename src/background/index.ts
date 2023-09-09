@@ -106,7 +106,7 @@ chrome.runtime.onMessage.addListener(async (request: any, _sender: chrome.runtim
         console.error('No active tab found in current window in savecookies manually.')
         return
       }
-      const [rootDomain, key, isNotInDomain] = (await processDomain(tabs[0], false)) as [string, string, boolean]
+      const [rootDomain, key, isNotInDomain] = (await processDomain(tabs[0], false)) as [string, string, boolean] //isNotInDomain不一定返回布尔值吧 9.9
       if (isNotInDomain) {
         const trackedDomains = await getTrackedDomains() //8.27
         trackedDomains.push(rootDomain as string)
@@ -118,7 +118,8 @@ chrome.runtime.onMessage.addListener(async (request: any, _sender: chrome.runtim
       }
       const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
       if (request.account in accounts) {
-        await saveCurrentCookies(rootDomain, key, request.account)
+        // await saveCurrentCookies(rootDomain, key, request.account)
+        await saveCurrentCookies(rootDomain, request.account, true)
       } else {
         console.log("We don't receive the account you select in saveCookies manually", 'accounts:', accounts, 'request.account:', request.account)
       }
@@ -296,7 +297,7 @@ async function removeClosedAccounts() {
   // 遍历现有的账户
   for (const [key, account] of Object.entries(accounts)) {
     // 如果账户没有被标记为删除，则添加到新的对象中
-    if (!account.closed) {
+    if (!account.closed) {//小心这里操作空对象，会报错，目前已修复9.9
       updatedAccounts[key] = account
     }
   }
@@ -390,7 +391,7 @@ async function handleTabChange(tabId: number) {
     const tab = await chrome.tabs.get(tabId) //At first  it is currenttabID, but now I change it to tabID.
     const [rootDomain, key] = (await processDomain(tab)) as [string, string]
     //make new links only open in the current tab 8.26
-    await modifyLinksInTab(tabId)
+    modifyLinksInTab(tabId)//It is not necessary to use await 9.9
     // Load the appropriate cookies
     if (key in accounts && accounts[key]) {
       //让popup页面显示当前所在的账户，popup页面的显示是通过sync.get来实现的(由于每次打开会自动获取，所以不需要持续监听) 为什么要写把这个放在if语句里面?因为这说明这是一个新打开的页面,暂时不保存可以方便用户创建自己的账户
@@ -424,10 +425,10 @@ async function saveCurrentCookies(rootDomain: string, key: string, manualSave: b
     accounts[key] = accounts[key] || {}
     accounts[key].cookies = cookies
     //When we use savecookies manually, we should reset the value of manualsave
-    if (typeof manualSave == 'string') {
+    // if (typeof manualSave == 'string') {
       //在手动保存的时候会把 Account的key给传进来,自动保存为正常的boolen
       accounts[key].manualSave = !!manualSave
-    }
+    // }
     console.log('成功保存cookie, account key为:', key)
 
     await chrome.storage.local.set({ accounts: accounts })
@@ -679,6 +680,19 @@ async function modifyLinksInTab(tabId: number) {
             window.location.href = link.href // 在当前窗口中导航
             console.log('Link clicked: ' + link.href)
           }
+        })
+        window.open = function (url) {
+          window.location.href = url as string
+          return null
+        }
+        document.querySelectorAll('a').forEach(function (link) {
+          link.target = '_self'
+        })
+        document.querySelectorAll('form').forEach(function (form) {
+          form.addEventListener('submit', function (event) {
+            event.preventDefault()
+            window.location.href = form.action
+          })
         })
       },
     })

@@ -354,7 +354,7 @@ const promptForAccountName = (successMessage: string) => {
     if (accountName) {
       if (!(accountName in accounts.value)) {
         const newAccount = { ...accounts.value };
-        newAccount[accountName] = null;
+        newAccount[accountName] = {};//原先这里初始赋值为null,会导致这是空对象,访问属性报错 9.9
         chrome.storage.local.set({ accounts: newAccount }, () => {
           if (chrome.runtime.lastError) {
             alert("Error: " + chrome.runtime.lastError.message);
