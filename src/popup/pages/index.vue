@@ -59,6 +59,8 @@
         <label class="flex items-center space-x-2">
           <input v-model="clearCookiesEnabled" type="checkbox" />
           <span>开启对追踪域名的新选项卡清除cookie功能</span>
+          <input v-model="modifyLinkEnabled" type="checkbox" />
+            <span>限制追踪域名链接只能在当前页面打开</span>
         </label>
         <ul id="domain-list" class="list-inside list-decimal">
           <li v-for="(domain, index) in domains" :key="domain" class="mb-2">
@@ -84,6 +86,7 @@ const newDomain = ref<string>('');
 const domains = ref<string[]>([]);
 const accounts = ref<Record<string, any>>({});
 const clearCookiesEnabled = ref(true); // 设置一个反应性变量来追踪开关状态
+const modifyLinkEnabled = ref(true);
 
 // 使用 watch 来监视 trackedDomains 的改变
 watch(domains, (newValue) => {
@@ -105,6 +108,10 @@ watch(clearCookiesEnabled, (newValue) => {
   chrome.storage.local.set({ clearCookiesEnabled: newValue });
 });
 
+watch(modifyLinkEnabled, (newValue) => {
+  chrome.storage.local.set({ modifyLinkEnabled: newValue });
+});
+
 // 加载存储的selectedAccount值
 chrome.storage.sync.get('selectedAccount', (data) => {
   selectedAccount.value = data.selectedAccount || null;
@@ -118,6 +125,10 @@ chrome.storage.local.get('clearCookiesEnabled', (data) => {
   //   clearCookiesEnabled.value = false;
   // }
   clearCookiesEnabled.value = data.clearCookiesEnabled || false;//If you set true, then it will always be true when you open the popup 8.29
+});
+
+chrome.storage.local.get('modifyLinkEnabled', (data) => {
+  modifyLinkEnabled.value = data.modifyLinkEnabled || false;
 });
 
 chrome.storage.local.get('accounts', (data) => {

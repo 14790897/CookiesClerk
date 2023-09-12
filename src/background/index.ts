@@ -8,7 +8,7 @@ interface Account {
   cookies: chrome.cookies.Cookie[]
   manualSave?: boolean
   closed?: boolean
-  refresh?: boolean
+  refresh?: boolean //加载全部cookie后,是否需要手动刷新?
 }
 
 // 定义变量的类型
@@ -33,6 +33,7 @@ chrome.runtime.onInstalled.addListener(function (details) {
   // }
   if (details.reason === 'install') {
     chrome.storage.local.set({ clearCookiesEnabled: true })
+    chrome.storage.local.set({ modifyLinkEnabled: true }) // 9.12
   }
 })
 
@@ -85,7 +86,8 @@ async function checkTabsAndCleanAccounts() {
   // 更新全局变量
   // accounts = updatedAccounts
 }
-// 在插件启动时调用此函数
+
+// 在浏览器启动时调用此函数
 chrome.runtime.onStartup.addListener(checkTabsAndCleanAccounts)
 
 // 在插件启动时调用此函数
@@ -224,24 +226,35 @@ async function handleLoadAllCookies(loadSavedSelectedAccounts: boolean) {
 
     console.log('Updated accounts saved successfully!')
   } catch (error) {
-    console.error('An error occurred:', error)
+    console.error('An error occurred in handleLoadAllCookies:', error)
   }
 }
 
 // 监听标签页更新事件
 chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
-  const tabIdDataMap: Record<number, { key: string; account: Account }> = await getStorageData('tabIdDataMap')
-  // 检查是否存在映射数据
-  if (Object.prototype.hasOwnProperty.call(tabIdDataMap, tabId) && changeInfo.status === 'complete') {
-    const { key, account } = tabIdDataMap[tabId]
-    console.log(`Tab ${tabId} loaded for account key in onUpdated: ${key}`)
-    const tab = await chrome.tabs.get(tabId) //At first  it is currenttabID, but now I change it to tabID.
-    const [rootDomain, _] = (await processDomain(tab)) as [string, string]
-    await chrome.storage.sync.set({ selectedAccount: key })
-    await loadCookies(rootDomain, account.cookies)
-    delete tabIdDataMap[tabId] // 从映射中移除数据
-    await chrome.storage.local.set({ tabIdDataMap }) // 更新存储中的映射数据
-    await chrome.tabs.reload(tabId)
+  try {
+    const tabIdDataMap: Record<number, { key: string; account: Account }> = await getStorageData('tabIdDataMap')
+    // 检查是否存在映射数据
+    if (Object.prototype.hasOwnProperty.call(tabIdDataMap, tabId) && changeInfo.status === 'complete') {
+      const { key, account } = tabIdDataMap[tabId]
+      console.log(`Tab ${tabId} loaded for account key in onUpdated: ${key}`)
+      const tab = await chrome.tabs.get(tabId) //At first  it is currenttabID, but now I change it to tabID.
+      const [rootDomain, _] = (await processDomain(tab)) as [string, string]
+      await chrome.storage.sync.set({ selectedAccount: key })
+      await loadCookies(rootDomain, account.cookies)
+      delete tabIdDataMap[tabId] // 从映射中移除数据
+      await chrome.storage.local.set({ tabIdDataMap }) // 更新存储中的映射数据
+      await chrome.tabs.reload(tabId)
+      // 可能同时刷新多个标签页,要对符合条件的都执行脚本  9.12
+    }
+    const modifyLinkEnabled = await getStorageData<boolean>('modifyLinkEnabled', false) //9.12
+    if (modifyLinkEnabled) {
+      modifyLinksInTab(tabId)
+      console.log('modifyLinksInTab已经触发')
+    }
+  }
+  catch(error) {
+    console.log('An error occurred in onUpdated:', error)
   }
 })
 
@@ -297,7 +310,8 @@ async function removeClosedAccounts() {
   // 遍历现有的账户
   for (const [key, account] of Object.entries(accounts)) {
     // 如果账户没有被标记为删除，则添加到新的对象中
-    if (!account.closed) {//小心这里操作空对象，会报错，目前已修复9.9
+    if (!account.closed) {
+      //小心这里操作空对象，会报错，目前已修复9.9
       updatedAccounts[key] = account
     }
   }
@@ -391,7 +405,9 @@ async function handleTabChange(tabId: number) {
     const tab = await chrome.tabs.get(tabId) //At first  it is currenttabID, but now I change it to tabID.
     const [rootDomain, key] = (await processDomain(tab)) as [string, string]
     //make new links only open in the current tab 8.26
-    modifyLinksInTab(tabId)//It is not necessary to use await 9.9
+
+    // modifyLinksInTab(tabId) //It is not necessary to use await 9.9
+    
     // Load the appropriate cookies
     if (key in accounts && accounts[key]) {
       //让popup页面显示当前所在的账户，popup页面的显示是通过sync.get来实现的(由于每次打开会自动获取，所以不需要持续监听) 为什么要写把这个放在if语句里面?因为这说明这是一个新打开的页面,暂时不保存可以方便用户创建自己的账户
@@ -426,8 +442,8 @@ async function saveCurrentCookies(rootDomain: string, key: string, manualSave: b
     accounts[key].cookies = cookies
     //When we use savecookies manually, we should reset the value of manualsave
     // if (typeof manualSave == 'string') {
-      //在手动保存的时候会把 Account的key给传进来,自动保存为正常的boolen
-      accounts[key].manualSave = !!manualSave
+    //在手动保存的时候会把 Account的key给传进来,自动保存为正常的boolen
+    accounts[key].manualSave = !!manualSave
     // }
     console.log('成功保存cookie, account key为:', key)
 
@@ -671,36 +687,58 @@ async function modifyLinksInTab(tabId: number) {
     await chrome.scripting.executeScript({
       target: { tabId },
       func: function () {
-        // 添加事件监听器到共同的父元素，这里假设是<body>
+        // 函数：修改链接和表单
+        function modifyLinksAndForms() {
+          document.querySelectorAll('a').forEach(function (link) {
+            link.target = '_self'
+          })
+          document.querySelectorAll('form').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+              event.preventDefault()
+              window.location.href = form.action
+            })
+          })
+        }
+
+        // 初始调用
+        modifyLinksAndForms()
+
+        // 添加点击事件监听器
         document.body.addEventListener('click', function (event) {
-          // 检查event.target是否为null，并且是否是<a>标签
-          if (event.target && (event.target as HTMLElement).tagName === 'A') {
-            const link = event.target as HTMLAnchorElement
-            event.preventDefault() // 阻止默认行为
-            window.location.href = link.href // 在当前窗口中导航
-            console.log('Link clicked: ' + link.href)
+          if (event.target && event.target.tagName === 'A') {
+            event.preventDefault()
+            window.location.href = event.target.href
           }
         })
+
+        // 重写window.open
         window.open = function (url) {
           window.location.href = url as string
           return null
         }
-        document.querySelectorAll('a').forEach(function (link) {
-          link.target = '_self'
-        })
-        document.querySelectorAll('form').forEach(function (form) {
-          form.addEventListener('submit', function (event) {
-            event.preventDefault()
-            window.location.href = form.action
+
+        // 使用MutationObserver监听DOM变化
+        const observer = new MutationObserver(function (mutations) {
+          mutations.forEach(function (mutation) {
+            if (mutation.type === 'childList') {
+              modifyLinksAndForms()
+            }
           })
         })
+
+        // 配置观察选项
+        const config = { childList: true, subtree: true }
+
+        // 开始观察
+        observer.observe(document.body, config)
       },
     })
-    console.log('Links modified to open in the same tab using event delegation.')
+    console.log('Links and forms modified to open in the same tab.')
   } catch (error) {
-    console.log('Failed to modify links', error)
+    console.log('Failed to modify links and forms', error)
   }
 }
+
 
 // 清除旧通知
 const clearPreviousNotification = (notificationId: string) => {
