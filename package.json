@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "vue": "^3.3.4",
+    "vue-i18n": "^9.4.0",
     "vue-router": "^4.2.2"
   },
   "devDependencies": {
@@ -57,5 +58,5 @@
     "preview": "vite preview"
   },
   "type": "module",
-  "version": "1.0.1"
+  "version": "1.0.2"
 }

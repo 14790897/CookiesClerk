@@ -1,0 +1,78 @@
+{
+  "title":{
+    "message": "CookiesClerk",
+    "description": "Title text"
+  },
+  "accountManagement": {
+    "message": "Account Management",
+    "description": "Title for the account management section"
+  },
+  "addAccount": {
+    "message": "Add",
+    "description": "Label for the Add button"
+  },
+  "trackedDomainManagement": {
+    "message": "Tracked Domain Management",
+    "description": "Title for the tracked domain management section"
+  },
+  "domainExample": {
+    "message": "Example: google.com",
+     "description": "Placeholder for the new domain input box"
+  },
+  "addNewDomain": {
+    "message": "Add",
+    "description": "Placeholder for the new domain input box"
+  },
+  "clearCookiesEnabled": {
+    "message": "Enable cookie clearing for new tabs in tracked domains",
+    "description": "Description for the first checkbox"
+  },
+  "modifyLinkEnabled": {
+    "message": "Restrict tracked domain links to open only in the current tab",
+    "description": "Description for the second checkbox"
+  },
+  "delete": {
+    "message": "Delete",
+    "description": "Label for the Delete button"
+  },
+  "saveCookiesToAccount": {
+    "message": "Save Cookies To Account",
+    "description": "Title for the Save Cookies button"
+  },
+  "loadCookiesFromAccount": {
+    "message": "Load Cookies From Account",
+    "description": "Title for the Load Cookies button"
+  },
+  "deleteAccount": {
+    "message": "Delete Account",
+    "description": "Title for the Delete Account button"
+  },
+  "deleteAllAccount": {
+    "message": "Delete All Account",
+    "description": "Title for the Delete All Account button"
+  },
+  "clearAllClosedCookies": {
+    "message": "Clear All Closed Cookies",
+    "description": "Title for the Clear All Closed Cookies button"
+  },
+  "clearCookies": {
+    "message": "Clear Cookies",
+    "description": "Title for the Clear Cookies button"
+  },
+  "saveAllCookies": {
+    "message": "Save All Cookies",
+    "description": "Title for the Save All Cookies button"
+  },
+  "loadAllCookies": {
+    "message": "Load All Cookies",
+    "description": "Title for the Load All Cookies button"
+  },
+  "greeting": {
+    "message": "Hello",
+    "description": "Greeting text"
+  },
+  "farewell": {
+    "message": "Goodbye",
+    "description": "Farewell text"
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "title":{
+    "message": "Cookies店员",
+    "description": "Title text"
+  },
+   "accountManagement": {
+    "message": "账户管理",
+    "description": "账户管理部分的标题"
+  },
+  "addAccount": {
+    "message": "添加",
+    "description": "添加按钮的标签"
+  },
+  "trackedDomainManagement": {
+    "message": "追踪域名管理",
+    "description": "追踪域名管理部分的标题"
+  },
+  "domainExample": {
+    "message": "例如: google.com",
+    "description": "域名输入框的占位符"
+  },
+  "addNewDomain": {
+    "message": "添加",
+    "description": "新域名输入框的占位符"
+  },
+  "clearCookiesEnabled": {
+    "message": "开启对追踪域名的新选项卡清除cookie功能",
+    "description": "第一个复选框的描述"
+  },
+  "modifyLinkEnabled": {
+    "message": "限制追踪域名网页的链接只能在当前页面打开",
+    "description": "第二个复选框的描述"
+  },
+  "delete": {
+    "message": "删除",
+    "description": "删除按钮的标签"
+  },
+   "saveCookiesToAccount": {
+    "message": "保存Cookies到账户",
+    "description": "保存Cookies按钮的标题"
+  },
+  "loadCookiesFromAccount": {
+    "message": "从账户加载Cookies",
+    "description": "加载Cookies按钮的标题"
+  },
+  "deleteAccount": {
+    "message": "删除账户",
+    "description": "删除账户按钮的标题"
+  },
+  "deleteAllAccount": {
+    "message": "删除所有账户",
+    "description": "删除所有账户按钮的标题"
+  },
+  "clearAllClosedCookies": {
+    "message": "清除所有已关闭的Cookies",
+    "description": "清除所有已关闭的Cookies按钮的标题"
+  },
+  "clearCookies": {
+    "message": "清除Cookies",
+    "description": "清除Cookies按钮的标题"
+  },
+  "saveAllCookies": {
+    "message": "保存所有Cookies",
+    "description": "保存所有Cookies按钮的标题"
+  },
+  "loadAllCookies": {
+    "message": "加载所有Cookies",
+    "description": "加载所有Cookies按钮的标题"
+  },
+  "greeting": {
+    "message": "Hello",
+    "description": "Greeting text"
+  },
+  "farewell": {
+    "message": "Goodbye",
+    "description": "Farewell text"
+  }
+}

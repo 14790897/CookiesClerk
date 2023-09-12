@@ -1,11 +1,11 @@
 <template>
   <div class="container mx-auto p-2 ">
-    <h1 class="text-lg text-center font-bold mb-2">Cookie Clerk</h1>
+    <h1 class="text-lg text-center font-bold mb-2" data-i18n="title">CookiesClerk</h1>
 
     <div class="flex-col">
       <!-- Account Management -->
       <div class="border p-2 mb-2 flex-1">
-        <h2 class="text-base font-bold mb-2">Account Management</h2>
+        <h2 class="text-base font-bold mb-2" data-i18n="accountManagement">Account Management</h2>
         <div class="flex items-center mb-2">
           <select id="accountSelect" v-model="selectedAccount" class="form-select  mt-1 mr-2" style="min-width: 200px;">
             <option v-for="(accountData, accountKey) in accounts" :key="accountKey" :value="accountKey">
@@ -14,59 +14,59 @@
             </option>
           </select>
           <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2 "
-            @click="addAccount">Add</button>
+            @click="addAccount" data-i18n="addAccount">Add</button>
         </div>
 
         <div class="justify-center items-center ">
-          <button class="bg-green-500 hover:bg-green-700 text-white font-bold  rounded mr-2" @click="saveCookies"> <img
+          <button class="bg-green-500 hover:bg-green-700 text-white font-bold  rounded mr-2" @click="saveCookies" > <img
               src="../../assets/SaveCookies.png" alt="Save Cookies Icon" title="Save Cookies To Account"
-              class="w-16 h-16 mr-2">
+              class="w-16 h-16 mr-2" data-i18n-title="saveCookiesToAccount">
           </button>
-          <button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold rounded mr-2" @click="loadCookies"><img
+          <button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold rounded mr-2" @click="loadCookies" ><img
               src="../../assets/LoadCookies.png" alt="Load Cookies Icon" title="Load Cookies From Account"
-              class="w-16 h-16 mr-2"></button>
-          <button class="bg-red-500 hover:bg-red-700 text-white font-bold  rounded mr-2" @click="deleteAccount"><img
+              class="w-16 h-16 mr-2" data-i18n-title="loadCookiesFromAccount"></button>
+          <button class="bg-red-500 hover:bg-red-700 text-white font-bold  rounded mr-2" @click="deleteAccount" ><img
               src="../../assets/DeleteAccount.png" alt="Delete Account Icon" title="Delete Account"
-              class="w-16 h-16 mr-2">
+              class="w-16 h-16 mr-2" data-i18n-title="deleteAccount">
           </button>
-          <button class="bg-red-500 hover:bg-red-700 text-white font-bold rounded mr-2" @click="deleteAllAccounts"><img
+          <button class="bg-red-500 hover:bg-red-700 text-white font-bold rounded mr-2" @click="deleteAllAccounts" ><img
               src="../../assets/DeleteAllAccount.png" alt="Delete All Account Icon" title="Delete All Account"
-              class="w-16 h-16 mr-2"></button>
+              class="w-16 h-16 mr-2" data-i18n-title="deleteAllAccount"></button>
           <button class="bg-red-500 hover:bg-red-700 text-white font-bold rounded mr-2"
-            @click="clearAllClosedCookies"><img src="../../assets/ClearAllClosedCookies.png"
-              alt="Clear All Closed Cookies Icon" title="Clear All Closed Cookies" class="w-16 h-16 mr-2"></button>
-          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2" @click="clearCookies">
+            @click="clearAllClosedCookies" ><img src="../../assets/ClearAllClosedCookies.png"
+              alt="Clear All Closed Cookies Icon" title="Clear All Closed Cookies" class="w-16 h-16 mr-2" data-i18n-title="clearAllClosedCookies"></button>
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2" @click="clearCookies" >
             <img src="../../assets/ClearCookies.png" alt="Clear Cookies Icon" title="Clear Cookies"
-              class="w-16 h-16 mr-2">
+              class="w-16 h-16 mr-2" data-i18n-title="clearCookies">
           </button>
           <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2" @click="saveAllCookies">
             <img src="../../assets/SaveAllCookies.png" alt="Save All Cookies Icon" title="Save All Cookies"
-              class="w-16 h-16 mr-2"></button>
+              class="w-16 h-16 mr-2" data-i18n-title="saveAllCookies"></button>
           <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2" @click="loadAllCookies">
             <img src="../../assets/LoadAllCookies.png" alt="Load All Cookies Icon" title="Load All Cookies"
-              class="w-16 h-16 mr-2"></button>
+              class="w-16 h-16 mr-2" data-i18n-title="loadAllCookies"></button>
         </div>
       </div>
 
       <!-- Tracked Domain Management -->
       <div class="border p-2 flex-1">
-        <h2 class="text-base font-bold mb-2">Tracked Domain Management</h2>
+        <h2 class="text-base font-bold mb-2" data-i18n="trackedDomainManagement">Tracked Domain Management</h2>
         <div class="flex items-center mb-2">
-          <input v-model="newDomain" type="text" placeholder="Add new domain" required class="form-input w-48 mt-1 mr-2">
+          <input v-model="newDomain" type="text" placeholder="Add new domain" required class="form-input w-48 mt-1 mr-2" data-i18n-placeholder="domainExample">
           <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold  py-2 px-4 rounded mr-2 "
-            @click="addDomain">Add</button>
+            @click="addDomain" data-i18n="addNewDomain">Add</button>
         </div>
         <label class="flex items-center space-x-2">
           <input v-model="clearCookiesEnabled" type="checkbox" />
-          <span>开启对追踪域名的新选项卡清除cookie功能</span>
+          <span data-i18n="clearCookiesEnabled">开启对追踪域名的新选项卡清除cookie功能</span>
           <input v-model="modifyLinkEnabled" type="checkbox" />
-            <span>限制追踪域名链接只能在当前页面打开</span>
+          <span ref="spanElement" data-i18n="modifyLinkEnabled">限制追踪域名链接只能在当前页面打开</span>
         </label>
         <ul id="domain-list" class="list-inside list-decimal">
           <li v-for="(domain, index) in domains" :key="domain" class="mb-2">
             {{ domain }}
             <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
-              @click="deleteDomain(index)">Delete</button>
+              @click="deleteDomain(index)" data-i18n="delete">Delete</button>
           </li>
         </ul>
       </div>
@@ -78,7 +78,6 @@
   </div> -->
 </template>
 
-
 <script setup lang="ts">
 
 const selectedAccount = ref<string | null>(null);
@@ -87,6 +86,34 @@ const domains = ref<string[]>([]);
 const accounts = ref<Record<string, any>>({});
 const clearCookiesEnabled = ref(true); // 设置一个反应性变量来追踪开关状态
 const modifyLinkEnabled = ref(true);
+const spanElement = ref<HTMLElement | null>(null);
+
+onMounted(() => {
+  // 处理所有需要国际化的元素
+  document.querySelectorAll('[data-i18n], [data-i18n-title], [data-i18n-placeholder]').forEach(el => {
+    // 如果有data-i18n属性，设置文本内容
+    if (el.hasAttribute('data-i18n')) {
+      el.textContent = chrome.i18n.getMessage(el.getAttribute('data-i18n'));
+    }
+
+    // 如果有data-i18n-title属性，设置title属性
+    if (el.hasAttribute('data-i18n-title')) {
+      el.setAttribute('title', chrome.i18n.getMessage(el.getAttribute('data-i18n-title')));
+    }
+
+    // 如果有data-i18n-placeholder属性，设置placeholder属性
+    if (el.hasAttribute('data-i18n-placeholder')) {
+      el.setAttribute('placeholder', chrome.i18n.getMessage(el.getAttribute('data-i18n-placeholder')));
+    }
+  });
+});
+
+watchEffect(() => {
+  const el = document.querySelector(`[data-i18n=delete]`);
+  if (el) {
+    el.textContent = chrome.i18n.getMessage("delete");
+  }
+});
 
 // 使用 watch 来监视 trackedDomains 的改变
 watch(domains, (newValue) => {
@@ -95,10 +122,14 @@ watch(domains, (newValue) => {
     if (chrome.runtime.lastError) {
       console.error('存储失败:', chrome.runtime.lastError);
     } else {
+      document.querySelectorAll('[data-i18n="delete"]').forEach(el => {
+        el.textContent = chrome.i18n.getMessage(el.getAttribute('data-i18n'));
+      });
       console.log('存储成功 in watch domains!');
     }
   });
 });//, { immediate: true }
+
 // 当selectedAccount改变时，保存其值
 watch(selectedAccount, (newValue) => {
   chrome.storage.sync.set({ selectedAccount: newValue });
@@ -129,6 +160,9 @@ chrome.storage.local.get('clearCookiesEnabled', (data) => {
 
 chrome.storage.local.get('modifyLinkEnabled', (data) => {
   modifyLinkEnabled.value = data.modifyLinkEnabled || false;
+  // if (spanElement.value) {
+  //   spanElement.value.textContent = 'please refresh website';
+  // }
 });
 
 chrome.storage.local.get('accounts', (data) => {
@@ -297,7 +331,7 @@ const addDomain = () => {
         return;
       }
       domains.value.push(rootDomain);
-        domains.value = [...domains.value]; // 触发 Watcher
+      domains.value = [...domains.value]; // 触发 Watcher
 
       newDomain.value = '';
     } else {

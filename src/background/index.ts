@@ -233,27 +233,41 @@ async function handleLoadAllCookies(loadSavedSelectedAccounts: boolean) {
 // 监听标签页更新事件
 chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
   try {
-    const tabIdDataMap: Record<number, { key: string; account: Account }> = await getStorageData('tabIdDataMap')
-    // 检查是否存在映射数据
-    if (Object.prototype.hasOwnProperty.call(tabIdDataMap, tabId) && changeInfo.status === 'complete') {
-      const { key, account } = tabIdDataMap[tabId]
-      console.log(`Tab ${tabId} loaded for account key in onUpdated: ${key}`)
-      const tab = await chrome.tabs.get(tabId) //At first  it is currenttabID, but now I change it to tabID.
-      const [rootDomain, _] = (await processDomain(tab)) as [string, string]
-      await chrome.storage.sync.set({ selectedAccount: key })
-      await loadCookies(rootDomain, account.cookies)
-      delete tabIdDataMap[tabId] // 从映射中移除数据
-      await chrome.storage.local.set({ tabIdDataMap }) // 更新存储中的映射数据
-      await chrome.tabs.reload(tabId)
-      // 可能同时刷新多个标签页,要对符合条件的都执行脚本  9.12
-    }
+    // 可能同时刷新多个标签页,要对符合条件的都执行脚本  9.12
     const modifyLinkEnabled = await getStorageData<boolean>('modifyLinkEnabled', false) //9.12
     if (modifyLinkEnabled) {
       modifyLinksInTab(tabId)
-      console.log('modifyLinksInTab已经触发')
     }
-  }
-  catch(error) {
+    // const tabIdDataMap: Record<number, { key: string; account: Account }> = await getStorageData('tabIdDataMap')
+    // // 检查是否存在映射数据
+    // if (Object.prototype.hasOwnProperty.call(tabIdDataMap, tabId) && changeInfo.status === 'complete') {
+    //   const { key, account } = tabIdDataMap[tabId]
+    //   console.log(`Tab ${tabId} loaded for account key in onUpdated: ${key}`)
+    //   const tab = await chrome.tabs.get(tabId) //At first  it is currenttabID, but now I change it to tabID.
+    //   const [rootDomain, _] = (await processDomain(tab)) as [string, string]
+    //   await chrome.storage.sync.set({ selectedAccount: key })
+    //   await loadCookies(rootDomain, account.cookies)
+    //   delete tabIdDataMap[tabId] // 从映射中移除数据
+    //   await chrome.storage.local.set({ tabIdDataMap }) // 更新存储中的映射数据
+    //   await chrome.tabs.reload(tabId)
+    // }
+    //下面的代码是为了在刷新界面的时候如果目标网址是要追踪的网址那么就加载对应的cookies,主要是为上面的加载所有保存的账户的网页所服务的,因为它会立即切换到第一个网页,但是这时候还没有运行loadcookies的代码,所以需要在这里运行一下 9.12
+    const accounts = await getStorageData<Record<string, Account>>('accounts')
+    if (changeInfo.status === 'complete') {
+      for (const [key, account] of Object.entries(accounts)) {
+        if (account.refresh) {
+          if (key.includes(tabId.toString())) {
+            const [rootDomain, _] = (await processDomain(tab)) as [string, string]
+            await chrome.storage.sync.set({ selectedAccount: key })
+            await loadCookies(rootDomain, account.cookies)
+            await chrome.tabs.reload(tabId)
+            account.refresh = false
+          }
+        }
+      }
+    }
+    await chrome.storage.local.set({ accounts: accounts })
+  } catch (error) {
     console.log('An error occurred in onUpdated:', error)
   }
 })
@@ -407,7 +421,7 @@ async function handleTabChange(tabId: number) {
     //make new links only open in the current tab 8.26
 
     // modifyLinksInTab(tabId) //It is not necessary to use await 9.9
-    
+
     // Load the appropriate cookies
     if (key in accounts && accounts[key]) {
       //让popup页面显示当前所在的账户，popup页面的显示是通过sync.get来实现的(由于每次打开会自动获取，所以不需要持续监听) 为什么要写把这个放在if语句里面?因为这说明这是一个新打开的页面,暂时不保存可以方便用户创建自己的账户
@@ -733,12 +747,11 @@ async function modifyLinksInTab(tabId: number) {
         observer.observe(document.body, config)
       },
     })
-    console.log('Links and forms modified to open in the same tab.')
+    console.log('Links and forms are modified to open in the same tab.')
   } catch (error) {
     console.log('Failed to modify links and forms', error)
   }
 }
-
 
 // 清除旧通知
 const clearPreviousNotification = (notificationId: string) => {
