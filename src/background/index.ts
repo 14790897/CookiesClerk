@@ -6,6 +6,7 @@ type SameSiteStatus = 'no_restriction' | 'lax' | 'strict' | 'None'
 // 定义接口和类型
 interface Account {
   cookies: chrome.cookies.Cookie[]
+  localstorage?: any
   manualSave?: boolean
   closed?: boolean
   refresh?: boolean //加载全部cookie后,是否需要手动刷新?
@@ -171,6 +172,61 @@ chrome.runtime.onMessage.addListener(async (request: any, _sender: chrome.runtim
   }
 })
 
+//useless
+// // 监听来自Content Script或Popup的消息
+// chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+//   if (request.type === 'LOAD_LOCALSTORAGE') {
+//     // 从某个存储（例如IndexedDB、chrome.storage等）中获取数据
+//     const data = /* 对应账户的localStorage数据 */ loadLocalStorage(sender.tab.id, data)
+//     sendResponse({ status: 'Data loaded' })
+//   } else if (request.type === 'SAVE_AND_CLEAR_LOCALSTORAGE') {
+//     saveAndClearLocalStorage(sender.tab.id)
+//     sendResponse({ status: 'Data saved and cleared' })
+//   }
+// })
+
+async function loadLocalStorage(tabId: number, data: Record<string, string>) {
+  try {
+    console.log('data in loadLocalStorage:', data)
+    if (!data) {
+      return
+    }
+    chrome.scripting.executeScript({
+      target: { tabId },
+      func: (data) => {
+        Object.assign(localStorage, data)
+      },
+      args: [data],
+    })
+    console.log('localStorage loaded successfully!')
+  }catch(error){
+    console.log('An error occurred in loadLocalStorage:', error)
+  }
+}
+
+async function saveAndClearLocalStorage(tabId: number) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        // 保存当前页面的localStorage数据
+        const savedData = { ...localStorage }
+        // 清除当前页面的localStorage
+        localStorage.clear()
+        return savedData
+      },
+    })
+
+    // 输出成功消息
+    console.log('Successfully saved and cleared localStorage:')
+
+    return result
+  } catch (error) {
+    console.log('An error occurred in saveAndClearLocalStorage:', error)
+  }
+}
+
+
 async function reloadActiveTab() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
   if (tabs[0] && tabs[0].id) {
@@ -200,8 +256,9 @@ async function handleLoadAllCookies(loadSavedSelectedAccounts: boolean) {
     } else {
       savedAccounts = (await getStorageData('savedAccounts')) as Record<string, Account>
     }
-    const newAccounts: Record<string, Account> = {}
+    // const newAccounts: Record<string, Account> = {}
     console.log('savedAccounts:', savedAccounts)
+    const accounts = await getStorageData<Record<string, Account>>('accounts') // 9.13
     for (const [key, account] of Object.entries(savedAccounts)) {
       if (!account.cookies || !account.cookies[0]) {
         console.log('No cookies for this account, account key:', key)
@@ -217,12 +274,13 @@ async function handleLoadAllCookies(loadSavedSelectedAccounts: boolean) {
       }
       const newKey = `${rootDomain}-${tab.id}`
       tabIdDataMap[tab.id] = { key: newKey, account } // 存储 tabId 和相应数据的映射
-
-      newAccounts[newKey] = account
+      accounts[newKey] = account
+      // newAccounts[newKey] = account
     }
     await chrome.storage.local.set({ tabIdDataMap: tabIdDataMap })
     //update the accounts in this runtime, so we can use it in this extension 8.28
-    await chrome.storage.local.set({ accounts: newAccounts })
+    // await chrome.storage.local.set({ accounts: newAccounts })
+    await chrome.storage.local.set({ accounts: accounts })
 
     console.log('Updated accounts saved successfully!')
   } catch (error) {
@@ -236,6 +294,7 @@ chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
     // 可能同时刷新多个标签页,要对符合条件的都执行脚本  9.12
     const modifyLinkEnabled = await getStorageData<boolean>('modifyLinkEnabled', false) //9.12
     if (modifyLinkEnabled) {
+      await processDomain(tab) //用于判断当前网页是否在追踪域名之内 9.13
       modifyLinksInTab(tabId)
     }
     // const tabIdDataMap: Record<number, { key: string; account: Account }> = await getStorageData('tabIdDataMap')
@@ -387,7 +446,17 @@ async function handleTabChange(tabId: number) {
       const [rootDomain, key] = (await processDomain(tab)) as [string, string]
       // chrome.tabs.sendMessage(tabId, { action: 'showMask' }) // To show the mask in the content script, corresponding with onUpdated 8.26
 
-      await saveCurrentCookies(rootDomain, key)
+      await saveCurrentCookies(rootDomain, key)//todo 这里可以将里面的保存提到外面来执行 9.13
+
+      const result = await saveAndClearLocalStorage(currentTabId) // save and clear localstorage 9.13
+      if (result && result[0] && result[0].result) {
+        accounts[key].localstorage = result[0].result
+        await chrome.storage.local.set({ accounts: accounts })
+      }
+      else {
+        console.log("can't get result in saveAndClearLocalStorage in handleTabChange.")
+      }
+
       console.log('handleTabChange中saveCurrentCookies已触发')
 
       //用户可以选择是否清除
@@ -430,6 +499,8 @@ async function handleTabChange(tabId: number) {
       // await injectMaskScript(tabId)
 
       await loadCookies(rootDomain, accounts[key].cookies)
+
+      await loadLocalStorage(tabId, accounts[key].localstorage)
 
       // chrome.tabs.sendMessage(tabId, { action: 'hideMask' }) // To hide the mask in the content script, corresponding with onUpdated 8.26
 
