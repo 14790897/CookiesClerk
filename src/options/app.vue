@@ -10,7 +10,7 @@
 
   <RouterView></RouterView>
 
-    <footer aria-label="Site Footer">
+    <footer aria-label="Site Footer" class="fixed-bottom">
       <div class="bg-gray-50 text-gray-700 px-4">
         <div class="flex justify-between items-center">
           <div>
@@ -27,4 +27,11 @@
     </footer>
 </template>
 
-<style scoped></style>
+<style scoped>
+.fixed-bottom {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+}
+
+</style>

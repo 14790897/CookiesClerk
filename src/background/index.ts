@@ -10,6 +10,7 @@ interface Account {
   manualSave?: boolean
   closed?: boolean
   refresh?: boolean //加载全部cookie后,是否需要手动刷新?
+  alias?: string //用户手动修改的别名 9.13
 }
 
 // 定义变量的类型
@@ -45,7 +46,7 @@ async function getStorageData<T>(storageKey: string, defaultValue: T = {} as T):
   try {
     const result = await chrome.storage.local.get(storageKey)
     if (!result[storageKey]) {
-      console.log('Notice: the value is null in getStorageData.')
+      console.log('Notice: the value is null in getStorageData. storageKey:', storageKey)//这里不应该抛出错误，因为这个函数是用来获取数据的，如果没有数据，就返回默认值 9.13
     }
     return (result[storageKey] || defaultValue) as T
   } catch (error) {
@@ -171,19 +172,6 @@ chrome.runtime.onMessage.addListener(async (request: any, _sender: chrome.runtim
     removeClosedAccounts()
   }
 })
-
-//useless
-// // 监听来自Content Script或Popup的消息
-// chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-//   if (request.type === 'LOAD_LOCALSTORAGE') {
-//     // 从某个存储（例如IndexedDB、chrome.storage等）中获取数据
-//     const data = /* 对应账户的localStorage数据 */ loadLocalStorage(sender.tab.id, data)
-//     sendResponse({ status: 'Data loaded' })
-//   } else if (request.type === 'SAVE_AND_CLEAR_LOCALSTORAGE') {
-//     saveAndClearLocalStorage(sender.tab.id)
-//     sendResponse({ status: 'Data saved and cleared' })
-//   }
-// })
 
 async function loadLocalStorage(tabId: number, data: Record<string, string>) {
   try {
@@ -446,15 +434,18 @@ async function handleTabChange(tabId: number) {
       const [rootDomain, key] = (await processDomain(tab)) as [string, string]
       // chrome.tabs.sendMessage(tabId, { action: 'showMask' }) // To show the mask in the content script, corresponding with onUpdated 8.26
 
-      await saveCurrentCookies(rootDomain, key)//todo 这里可以将里面的保存提到外面来执行 9.13
-
-      const result = await saveAndClearLocalStorage(currentTabId) // save and clear localstorage 9.13
-      if (result && result[0] && result[0].result) {
-        accounts[key].localstorage = result[0].result
-        await chrome.storage.local.set({ accounts: accounts })
-      }
-      else {
-        console.log("can't get result in saveAndClearLocalStorage in handleTabChange.")
+      await saveCurrentCookies(rootDomain, key) //todo 这里可以将里面的保存提到外面来执行 9.13
+      // save and clear localstorage 9.13
+      const result = await saveAndClearLocalStorage(currentTabId)
+      try {
+        if (result && result[0] && result[0].result) {
+          accounts[key].localstorage = result[0].result
+          await chrome.storage.local.set({ accounts: accounts })
+        } else {
+          console.log("can't get result in saveAndClearLocalStorage in handleTabChange.")
+        }
+      } catch (error) {
+        console.log('在handletapchange中需要忽视的报错 in saveAndClearLocalStorage:', error)
       }
 
       console.log('handleTabChange中saveCurrentCookies已触发')
@@ -600,11 +591,12 @@ async function loadCookies(rootDomain: string, cookies: chrome.cookies.Cookie[])
 }
 
 // 清除特定域名的所有 cookies
+// todo 增加对local storage的清除
 async function clearCookiesForDomain(domain: string) {
   try {
     const cookies = await chrome.cookies.getAll({ domain })
 
-    console.log('%c ----------------------', 'background: #00ff00; color: #000')
+    console.log('%c clear----------------------', 'background: #00ff00; color: #000')
     console.log(`%c Found ${cookies.length} cookies for domain: ${domain}`, 'background: #00ff00; color: #000')
 
     const promises = cookies.map(async (cookie) => {
@@ -622,7 +614,7 @@ async function clearCookiesForDomain(domain: string) {
 
     // Once all cookies are removed, print the final log line
     await Promise.all(promises)
-    console.log('%c ----------------------', 'background: #00ff00; color: #000')
+    console.log('%c clear----------------------', 'background: #00ff00; color: #000')
   } catch (error) {
     console.error('%c Error during cookie operation:', 'background: #ff0000; color: #fff', error)
   }
@@ -777,24 +769,24 @@ async function modifyLinksInTab(tabId: number) {
           document.querySelectorAll('a').forEach(function (link) {
             link.target = '_self'
           })
-          document.querySelectorAll('form').forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-              event.preventDefault()
-              window.location.href = form.action
-            })
-          })
+          // document.querySelectorAll('form').forEach(function (form) {
+          //   form.addEventListener('submit', function (event) {
+          //     event.preventDefault()
+          //     window.location.href = form.action
+          //   })
+          // })
         }
 
         // 初始调用
         modifyLinksAndForms()
 
         // 添加点击事件监听器
-        document.body.addEventListener('click', function (event) {
-          if (event.target && event.target.tagName === 'A') {
-            event.preventDefault()
-            window.location.href = event.target.href
-          }
-        })
+        // document.body.addEventListener('click', function (event) {
+        //   if (event.target && event.target.tagName === 'A') {
+        //     event.preventDefault()
+        //     window.location.href = event.target.href
+        //   }
+        // })
 
         // 重写window.open
         window.open = function (url) {

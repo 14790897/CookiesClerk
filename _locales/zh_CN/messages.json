@@ -11,6 +11,10 @@
     "message": "添加",
     "description": "添加按钮的标签"
   },
+  "renameAccount": {
+    "message": "重命名",
+    "description": "重命名按钮的标签"
+  },
   "trackedDomainManagement": {
     "message": "追踪域名管理",
     "description": "追踪域名管理部分的标题"
@@ -66,6 +70,10 @@
   "loadAllCookies": {
     "message": "加载所有Cookies",
     "description": "加载所有Cookies按钮的标题"
+  },
+    "options": {
+    "message": "选项",
+    "description": "打开选项界面"
   },
   "greeting": {
     "message": "Hello",

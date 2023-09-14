@@ -5,60 +5,73 @@
     <div class="flex-col">
       <!-- Account Management -->
       <div class="border p-2 mb-2 flex-1">
-        <h2 class="text-base font-bold mb-2" data-i18n="accountManagement">Account Management</h2>
+        <h2 class="text-base text-center font-bold mb-2" data-i18n="accountManagement">Account Management</h2>
         <div class="flex items-center mb-2">
-          <select id="accountSelect" v-model="selectedAccount" class="form-select  mt-1 mr-2" style="min-width: 200px;">
+          <select id="accountSelect" v-model="selectedAccount" class="form-select mt-1 mr-2" style="min-width: 200px;">
             <option v-for="(accountData, accountKey) in accounts" :key="accountKey" :value="accountKey">
-              {{ accountKey }} {{ accountData && accountData.manualSave ? '[Manually Saved]' : '' }}
+              {{ accountData.alias || accountKey }} {{ accountData && accountData.manualSave ? '[Manually Saved]' : '' }}
               {{ accountData && accountData.closed ? '[closed]' : '' }}
             </option>
           </select>
-          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2 "
-            @click="addAccount" data-i18n="addAccount">Add</button>
+          <div class="flex ">
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded mr-1 " @click="addAccount"
+              data-i18n="addAccount">Add</button>
+            <!-- Rename Button 9.13-->
+            <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded" @click="renameAccount"
+              data-i18n="renameAccount">Rename</button>
+          </div>
         </div>
 
         <div class="justify-center items-center ">
-          <button class="bg-green-500 hover:bg-green-700 text-white font-bold  rounded mr-2" @click="saveCookies" > <img
+          <button class="bg-green-500 hover:bg-green-700 text-white font-bold rounded mr-2" @click="saveCookies"> <img
               src="../../assets/SaveCookies.png" alt="Save Cookies Icon" title="Save Cookies To Account"
-              class="w-16 h-16 mr-2" data-i18n-title="saveCookiesToAccount">
+              :class="imageClass" data-i18n-title="saveCookiesToAccount">
           </button>
-          <button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold rounded mr-2" @click="loadCookies" ><img
+          <button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold rounded mr-2" @click="loadCookies"><img
               src="../../assets/LoadCookies.png" alt="Load Cookies Icon" title="Load Cookies From Account"
-              class="w-16 h-16 mr-2" data-i18n-title="loadCookiesFromAccount"></button>
-          <button class="bg-red-500 hover:bg-red-700 text-white font-bold  rounded mr-2" @click="deleteAccount" ><img
-              src="../../assets/DeleteAccount.png" alt="Delete Account Icon" title="Delete Account"
-              class="w-16 h-16 mr-2" data-i18n-title="deleteAccount">
+              :class="imageClass" data-i18n-title="loadCookiesFromAccount"></button>
+          <button class="bg-red-500 hover:bg-red-700 text-white font-bold  rounded mr-2" @click="deleteAccount"><img
+              src="../../assets/DeleteAccount.png" alt="Delete Account Icon" title="Delete Account" :class="imageClass"
+              data-i18n-title="deleteAccount">
           </button>
-          <button class="bg-red-500 hover:bg-red-700 text-white font-bold rounded mr-2" @click="deleteAllAccounts" ><img
+          <button class="bg-red-500 hover:bg-red-700 text-white font-bold rounded mr-2" @click="deleteAllAccounts"><img
               src="../../assets/DeleteAllAccount.png" alt="Delete All Account Icon" title="Delete All Account"
-              class="w-16 h-16 mr-2" data-i18n-title="deleteAllAccount"></button>
+              :class="imageClass" data-i18n-title="deleteAllAccount"></button>
           <button class="bg-red-500 hover:bg-red-700 text-white font-bold rounded mr-2"
-            @click="clearAllClosedCookies" ><img src="../../assets/ClearAllClosedCookies.png"
-              alt="Clear All Closed Cookies Icon" title="Clear All Closed Cookies" class="w-16 h-16 mr-2" data-i18n-title="clearAllClosedCookies"></button>
-          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2" @click="clearCookies" >
-            <img src="../../assets/ClearCookies.png" alt="Clear Cookies Icon" title="Clear Cookies"
-              class="w-16 h-16 mr-2" data-i18n-title="clearCookies">
+            @click="clearAllClosedCookies"><img src="../../assets/ClearAllClosedCookies.png"
+              alt="Clear All Closed Cookies Icon" title="Clear All Closed Cookies" :class="imageClass"
+              data-i18n-title="clearAllClosedCookies"></button>
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2" @click="clearCookies">
+            <img src="../../assets/ClearCookies.png" alt="Clear Cookies Icon" title="Clear Cookies" :class="imageClass"
+              data-i18n-title="clearCookies">
           </button>
           <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2" @click="saveAllCookies">
             <img src="../../assets/SaveAllCookies.png" alt="Save All Cookies Icon" title="Save All Cookies"
-              class="w-16 h-16 mr-2" data-i18n-title="saveAllCookies"></button>
+              :class="imageClass" data-i18n-title="saveAllCookies"></button>
           <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2" @click="loadAllCookies">
             <img src="../../assets/LoadAllCookies.png" alt="Load All Cookies Icon" title="Load All Cookies"
-              class="w-16 h-16 mr-2" data-i18n-title="loadAllCookies"></button>
+              :class="imageClass" data-i18n-title="loadAllCookies"></button>
+          <!-- <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2 p-2" @click="openOptions"
+            data-i18n="options">
+            Options</button> -->
         </div>
       </div>
 
       <!-- Tracked Domain Management -->
       <div class="border p-2 flex-1">
-        <h2 class="text-base font-bold mb-2" data-i18n="trackedDomainManagement">Tracked Domain Management</h2>
+        <h2 class="text-base font-bold text-center mb-2" data-i18n="trackedDomainManagement">Tracked Domain Management
+        </h2>
         <div class="flex items-center mb-2">
-          <input v-model="newDomain" type="text" placeholder="Add new domain" required class="form-input w-48 mt-1 mr-2" data-i18n-placeholder="domainExample">
-          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold  py-2 px-4 rounded mr-2 "
-            @click="addDomain" data-i18n="addNewDomain">Add</button>
+          <input v-model="newDomain" type="text" placeholder="Add new domain" required class="form-input w-48 mt-1 mr-2"
+            data-i18n-placeholder="domainExample">
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold  py-2 px-4 rounded mr-2 " @click="addDomain"
+            data-i18n="addNewDomain">Add</button>
         </div>
         <label class="flex items-center space-x-2">
           <input v-model="clearCookiesEnabled" type="checkbox" />
           <span data-i18n="clearCookiesEnabled">开启对追踪域名的新选项卡清除cookie功能</span>
+        </label>
+        <label class="flex items-center space-x-2">
           <input v-model="modifyLinkEnabled" type="checkbox" />
           <span ref="spanElement" data-i18n="modifyLinkEnabled">限制追踪域名链接只能在当前页面打开</span>
         </label>
@@ -87,6 +100,7 @@ const accounts = ref<Record<string, any>>({});
 const clearCookiesEnabled = ref(true); // 设置一个反应性变量来追踪开关状态
 const modifyLinkEnabled = ref(true);
 const spanElement = ref<HTMLElement | null>(null);
+const imageClass = 'w-12 h-12 mr-2';
 
 onMounted(() => {
   // 处理所有需要国际化的元素
@@ -108,12 +122,12 @@ onMounted(() => {
   });
 });
 
-watchEffect(() => {
-  const el = document.querySelector(`[data-i18n=delete]`);
-  if (el) {
-    el.textContent = chrome.i18n.getMessage("delete");
-  }
-});
+// watchEffect(() => {
+//   const el = document.querySelector(`[data-i18n=delete]`);
+//   if (el) {
+//     el.textContent = chrome.i18n.getMessage("delete");
+//   }
+// });
 
 // 使用 watch 来监视 trackedDomains 的改变
 watch(domains, (newValue) => {
@@ -214,6 +228,24 @@ const modifyAccountKey = (str: string) => {
   }
 
   return str
+}
+
+const renameAccount = () => {
+  if (selectedAccount.value) {
+    let newName = prompt("Enter the new name for the account:", selectedAccount.value);
+    if (selectedAccount.value && newName) {
+      accounts.value[selectedAccount.value].alias = newName;
+      newName = '';
+      chrome.storage.local.set({ accounts: accounts.value }, () => {
+        if (chrome.runtime.lastError) {
+          alert("Error: " + chrome.runtime.lastError.message);
+        } else {
+          alert(`Account ${selectedAccount.value} renamed successfully`);
+          selectedAccount.value = null;
+        }
+      });
+    }
+  }
 }
 
 const addAccount = () => {
@@ -317,6 +349,10 @@ const loadAllCookies = () => {
     console.log('loadAllCookies');
   });
 };
+
+const openOptions = () => {
+  chrome.runtime.openOptionsPage();
+}
 
 const addDomain = () => {
   try {
@@ -423,8 +459,8 @@ const promptForAccountName = (successMessage: string) => {
 
 </script>
 
-<!-- <style scoped>
-.container {
-  font-size: 16px;
+<!-- <style lang="postcss">
+.custom-button {
+  @apply bg-green-500 hover:bg-green-700 text-white font-bold rounded mr-2;
 }
 </style> -->

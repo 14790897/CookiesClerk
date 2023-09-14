@@ -11,6 +11,10 @@
     "message": "Add",
     "description": "Label for the Add button"
   },
+  "renameAccount": {
+    "message": "Rename",
+    "description": "Label for the Rename button"
+  },
   "trackedDomainManagement": {
     "message": "Tracked Domain Management",
     "description": "Title for the tracked domain management section"
@@ -28,7 +32,7 @@
     "description": "Description for the first checkbox"
   },
   "modifyLinkEnabled": {
-    "message": "Restrict tracked domain links to open only in the current tab",
+    "message": "Restrict tracked domain's links to open only in the current tab",
     "description": "Description for the second checkbox"
   },
   "delete": {
@@ -66,6 +70,10 @@
   "loadAllCookies": {
     "message": "Load All Cookies",
     "description": "Title for the Load All Cookies button"
+  },
+  "options": {
+    "message": "Options",
+    "description": "open options"
   },
   "greeting": {
     "message": "Hello",

@@ -17,9 +17,9 @@
       class="flex flex-wrap items-center mb-4 p-4 bg-white shadow-md rounded-lg">
       <input v-model="selectedAccounts[key]" type="checkbox" class="mr-2">
       <div class="flex-grow">
-        <p class="font-bold text-lg">{{ key }}</p>
-        <p class="text-gray-600">Manual Save: {{ account.manualSave }}</p>
-        <p class="text-gray-600">Closed: {{ account.closed }}</p>
+        <p class="font-bold text-lg">{{ account.alias || key }}</p>
+        <p class="text-gray-600" :class="{ 'text-green-600': account.manualSave }">Manual Save: {{ account.manualSave }}</p>
+        <p class="text-gray-600" :class="{ 'text-red-600': account.closed }" >Closed: {{ account.closed }}</p>
         <button @click="toggleCookiesVisible(key)" class="text-blue-500 hover:underline focus:outline-none">
           {{ cookiesVisible[key] ? 'Hide Cookies' : 'Show Cookies' }}
         </button>
@@ -46,7 +46,7 @@
       @click="showNotification">notification</button>
   </div>
   <div class="container mx-auto p-4">
-    <div class="bg-gray-200 p-4 rounded">
+    <div class="bg-white-200 p-4 rounded">
       <h2>Selected Accounts:</h2>
       <ul class="list-inside list-decimal">
         <li v-for="(entry, key) in selectedAccountsEntries" :key="key">
@@ -60,7 +60,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
 
 const accounts = ref<Record<string, any>>({});
 const selectedAccounts = ref<Record<string, any>>({});

@@ -19,7 +19,7 @@
           <a href="https://github.com/14790897/CookiesClerk" class="mr-2" target="_blank">GitHub</a>
         </div>
         <div>
-          <span class="mr-2">Version: 1.0.0</span>
+          <span class="mr-2">Version: 1.0.3</span>
           <a href="https://github.com/14790897/CookiesClerk/blob/main/src/assets/privacy%20policy.md" class="mr-2" target="_blank">Privacy Policy</a>
         </div>
       </div>
