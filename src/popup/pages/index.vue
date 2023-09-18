@@ -290,7 +290,7 @@ const deleteAccount = () => {
     return;
   }
   // 确认是否要删除
-  if (window.confirm(`Are you sure you want to delete account ${selectedAccount.value}?`)) {
+  // if (window.confirm(`Are you sure you want to delete account ${selectedAccount.value}?`)) {
     // 复制当前的账户
     const updatedAccounts = { ...accounts.value };
     // 删除选择的账户
@@ -305,7 +305,7 @@ const deleteAccount = () => {
         selectedAccount.value = null;
       }
     });
-  }
+  // }
 };
 
 const deleteAllAccounts = () => {
@@ -441,7 +441,7 @@ const promptForAccountName = (successMessage: string) => {
             alert("Error: " + chrome.runtime.lastError.message);
             reject(chrome.runtime.lastError); // 错误处理
           } else {
-            alert(successMessage);
+            // alert(successMessage);//可以考虑将这个message给去掉，因为可能没什么用 9.17
             accounts.value = newAccount; // 更新组件状态
             selectedAccount.value = accountName; // 更新组件状态
             resolve(); // 完成 Promise
