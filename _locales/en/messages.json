@@ -35,6 +35,10 @@
     "message": "Restrict tracked domain's links to open only in the current tab",
     "description": "Description for the second checkbox"
   },
+  "onStartupClearEnabled":{
+    "message": "Clear closed and no-alias cookies on startup",
+    "description": "Description for the third checkbox"
+  },
   "delete": {
     "message": "Delete",
     "description": "Label for the Delete button"

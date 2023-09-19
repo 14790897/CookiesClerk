@@ -75,6 +75,10 @@
           <input v-model="modifyLinkEnabled" type="checkbox" />
           <span ref="spanElement" data-i18n="modifyLinkEnabled">限制追踪域名链接只能在当前页面打开</span>
         </label>
+        <label class="flex items-center space-x-2">
+          <input v-model="onStartupClearEnabled" type="checkbox" />
+          <span data-i18n="onStartupClearEnabled">在浏览器启动时清除已关闭且无别名的账户信息</span>
+        </label>
         <ul id="domain-list" class="list-inside list-decimal">
           <li v-for="(domain, index) in domains" :key="domain" class="mb-2">
             {{ domain }}
@@ -99,6 +103,7 @@ const domains = ref<string[]>([]);
 const accounts = ref<Record<string, any>>({});
 const clearCookiesEnabled = ref(true); // 设置一个反应性变量来追踪开关状态
 const modifyLinkEnabled = ref(true);
+const onStartupClearEnabled = ref(true);
 const spanElement = ref<HTMLElement | null>(null);
 const imageClass = 'w-12 h-12 mr-2';
 
@@ -155,6 +160,10 @@ watch(clearCookiesEnabled, (newValue) => {
 
 watch(modifyLinkEnabled, (newValue) => {
   chrome.storage.local.set({ modifyLinkEnabled: newValue });
+});
+
+watch(onStartupClearEnabled, (newValue) => {
+  chrome.storage.local.set({ onStartupClearEnabled: newValue });
 });
 
 // 加载存储的selectedAccount值
@@ -291,20 +300,20 @@ const deleteAccount = () => {
   }
   // 确认是否要删除
   // if (window.confirm(`Are you sure you want to delete account ${selectedAccount.value}?`)) {
-    // 复制当前的账户
-    const updatedAccounts = { ...accounts.value };
-    // 删除选择的账户
-    delete updatedAccounts[selectedAccount.value];
-    // 更新存储
-    chrome.storage.local.set({ accounts: updatedAccounts }, () => {
-      if (chrome.runtime.lastError) {
-        alert("Error: " + chrome.runtime.lastError.message);
-      } else {
-        alert(`Account ${selectedAccount.value} deleted successfully`);
-        accounts.value = updatedAccounts;
-        selectedAccount.value = null;
-      }
-    });
+  // 复制当前的账户
+  const updatedAccounts = { ...accounts.value };
+  // 删除选择的账户
+  delete updatedAccounts[selectedAccount.value];
+  // 更新存储
+  chrome.storage.local.set({ accounts: updatedAccounts }, () => {
+    if (chrome.runtime.lastError) {
+      alert("Error: " + chrome.runtime.lastError.message);
+    } else {
+      alert(`Account ${selectedAccount.value} deleted successfully`);
+      accounts.value = updatedAccounts;
+      selectedAccount.value = null;
+    }
+  });
   // }
 };
 

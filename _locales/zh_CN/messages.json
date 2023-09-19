@@ -35,6 +35,10 @@
     "message": "限制追踪域名网页的链接只能在当前页面打开",
     "description": "第二个复选框的描述"
   },
+  "onStartupClearEnabled": {
+    "message": "在浏览器启动时清除已关闭且无别名的账户信息",
+    "description": "第三个复选框的描述"
+  },
   "delete": {
     "message": "删除",
     "description": "删除按钮的标签"

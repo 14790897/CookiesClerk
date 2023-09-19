@@ -27,3 +27,5 @@ backup.ts
 *.zip
 *.crx
 *.pem
+
+.history

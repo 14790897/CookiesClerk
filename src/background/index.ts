@@ -46,7 +46,7 @@ async function getStorageData<T>(storageKey: string, defaultValue: T = {} as T):
   try {
     const result = await chrome.storage.local.get(storageKey)
     if (!result[storageKey]) {
-      console.log('Notice: the value is null in getStorageData. storageKey:', storageKey)//这里不应该抛出错误，因为这个函数是用来获取数据的，如果没有数据，就返回默认值 9.13
+      console.log('Notice: the value is null in getStorageData. storageKey:', storageKey) //这里不应该抛出错误，因为这个函数是用来获取数据的，如果没有数据，就返回默认值 9.13
     }
     return (result[storageKey] || defaultValue) as T
   } catch (error) {
@@ -92,8 +92,14 @@ async function checkTabsAndCleanAccounts() {
 // 在浏览器启动时调用此函数
 chrome.runtime.onStartup.addListener(checkTabsAndCleanAccounts)
 
-// 在插件启动时调用此函数
-// checkTabsAndCleanAccounts()
+chrome.runtime.onStartup.addListener(clearOnStartup) //9.19
+
+async function clearOnStartup() {
+  const onStartupClearEnabled = await getStorageData<boolean>('onStartupClearEnabled', false)
+  if (onStartupClearEnabled) {
+    removeClosedAccounts()
+  }
+}
 
 //可能还少检查了一步，如果cookies的domain和你从网址中读取的不一样,我觉得最好是在你手动读取的domain前面加一个点
 chrome.runtime.onMessage.addListener(async (request: any, _sender: chrome.runtime.MessageSender, _sendResponse: (response: any) => void) => {
@@ -187,7 +193,7 @@ async function loadLocalStorage(tabId: number, data: Record<string, string>) {
       args: [data],
     })
     console.log('localStorage loaded successfully!')
-  }catch(error){
+  } catch (error) {
     console.log('An error occurred in loadLocalStorage:', error)
   }
 }
@@ -213,7 +219,6 @@ async function saveAndClearLocalStorage(tabId: number) {
     console.log('An error occurred in saveAndClearLocalStorage:', error)
   }
 }
-
 
 async function reloadActiveTab() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
@@ -246,16 +251,19 @@ async function handleLoadAllCookies(loadSavedSelectedAccounts: boolean) {
     }
     // const newAccounts: Record<string, Account> = {}
     console.log('savedAccounts:', savedAccounts)
+    //下面没必要再获得一次，只要深拷贝 9.19
     const accounts = await getStorageData<Record<string, Account>>('accounts') // 9.13
     for (const [key, account] of Object.entries(savedAccounts)) {
       if (!account.cookies || !account.cookies[0]) {
         console.log('No cookies for this account, account key:', key)
         continue
       }
+      // todo 按道理来说，应该是不会立刻激活页面的，但实际会跳到第一个页面，所以需要在这里先创建一个tab，然后再把它关掉？？？这个想法不错9.19
       const result = await createTabForAccount(account)
       const tab = result.tab
       const rootDomain = result.rootDomain
       account.refresh = true
+      delete account.alias // 将alias删除，这样可以使用自动清除close且无alias的页面9.19
       if (!tab.id) {
         console.log('No tab id found in createTabForAccount.')
         continue
@@ -371,7 +379,8 @@ async function removeClosedAccounts() {
   // 遍历现有的账户
   for (const [key, account] of Object.entries(accounts)) {
     // 如果账户没有被标记为删除，则添加到新的对象中
-    if (!account.closed) {
+    if (!account.closed || account.alias) {
+      //如果有alias，说明是用户手动添加的，不应该删除
       //小心这里操作空对象，会报错，目前已修复9.9
       updatedAccounts[key] = account
     }
