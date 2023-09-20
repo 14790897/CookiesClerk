@@ -84,7 +84,9 @@ async function checkTabsAndCleanAccounts() {
       // 如果键已经存在，则减少键名中的数字
       modifiedKey = decrementNumberInKey(modifiedKey)
     }
-
+    if (accounts[accountKey]) {
+      accounts[accountKey].closed = true
+    }
     // 将修改后的键及其对应的值放回新的对象
     updatedAccounts[modifiedKey] = accounts[accountKey]
   })
@@ -157,13 +159,30 @@ chrome.runtime.onMessage.addListener(async (request: any, _sender: chrome.runtim
       const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
       if (request.account in accounts && accounts[request.account]) {
         // Get the URL for the account
-        const url = getURLFromAccountKey(request.account)
+        const rootDomain = getURLFromAccountKey(request.account)
         // Load cookies for this account
-        const rootDomain = getRootDomain(url) // TODO: Is this code necessary? 8.29
+        // const rootDomain = getRootDomain(url) // TODO: Is this code necessary? 8.29
         if (rootDomain) {
-          await loadCookies(rootDomain, accounts[request.account].cookies)
-          //加载好cookies之后要刷新页面 8.25
-          await reloadActiveTab()
+          // 添加监听器
+          const listener = async (tabId, changeInfo, tab) => {
+            if (changeInfo.status === 'complete') {
+              console.log('进入手动加载cookies的loadcookies部分')
+              loadCookies(rootDomain, accounts[request.account].cookies)
+              //加载好cookies之后要刷新页面 8.25
+              await reloadActiveTab()
+              // 移除监听器
+              chrome.tabs.onUpdated.removeListener(listener)
+            }
+          }
+
+          chrome.tabs.onUpdated.addListener(listener)
+
+          // 确保URL是完整的
+          const fullURL = rootDomain.startsWith('http') ? rootDomain : 'https://' + rootDomain
+          await chrome.tabs.create({ url: fullURL })
+          // await chrome.tabs.update(tabs[0].id, { url: fullURL }) //刷新界面 9.20
+          console.log('已经刷新界面，url：', fullURL)
+          // request.account = null 不能在这里使用，因为会先执行这个，再加载cookies，到时cookies无法访问 9.20
         } else {
           console.error('Unable to get rootDomain from url in loadCookies manually.')
         }
@@ -278,6 +297,7 @@ async function handleLoadAllCookies(loadSavedSelectedAccounts: boolean) {
       const tab = result.tab
       const rootDomain = result.rootDomain
       account.refresh = true
+      //这里其实不用全部都保存，可以只保存账户的cookies 9.20
       delete account.alias // 将alias删除，这样可以使用自动清除close且无alias的页面9.19
       if (!tab.id) {
         console.log('No tab id found in createTabForAccount.')
