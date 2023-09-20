@@ -9,7 +9,7 @@
         <div class="flex items-center mb-2">
           <select id="accountSelect" v-model="selectedAccount" class="form-select mt-1 mr-2" style="min-width: 200px;">
             <option v-for="(accountData, accountKey) in accounts" :key="accountKey" :value="accountKey">
-              {{ accountData.alias || accountKey }} {{ accountData && accountData.manualSave ? '[Manually Saved]' : '' }}
+              {{ (accountData && accountData.alias) || accountKey }} {{ accountData && accountData.manualSave ? '[Manually Saved]' : '' }}
               {{ accountData && accountData.closed ? '[closed]' : '' }}
             </option>
           </select>
@@ -75,14 +75,14 @@
           <input v-model="modifyLinkEnabled" type="checkbox" />
           <span ref="spanElement" data-i18n="modifyLinkEnabled">限制追踪域名链接只能在当前页面打开</span>
         </label>
-        <label class="flex items-center space-x-2">
+        <label class="flex items-center space-x-2 text-shadow">
           <input v-model="onStartupClearEnabled" type="checkbox" />
           <span data-i18n="onStartupClearEnabled">在浏览器启动时清除已关闭且无别名的账户信息</span>
         </label>
         <ul id="domain-list" class="list-inside list-decimal">
           <li v-for="(domain, index) in domains" :key="domain" class="mb-2">
             {{ domain }}
-            <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
+            <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded shadow-lg text-shadow"
               @click="deleteDomain(index)" data-i18n="delete">Delete</button>
           </li>
         </ul>
@@ -245,7 +245,7 @@ const modifyAccountKey = (str: string) => {
 
 const renameAccount = () => {
   if (selectedAccount.value) {
-    let newName = prompt("Enter the new name for the account:", selectedAccount.value);
+    let newName = prompt("Enter the new name for the account:");//', selectedAccount.value'
     if (selectedAccount.value && newName) {
       accounts.value[selectedAccount.value].alias = newName;
       newName = '';
@@ -253,8 +253,8 @@ const renameAccount = () => {
         if (chrome.runtime.lastError) {
           alert("Error: " + chrome.runtime.lastError.message);
         } else {
-          alert(`Account ${selectedAccount.value} renamed successfully`);
-          selectedAccount.value = null;
+          // alert(`Account ${selectedAccount.value} renamed successfully`);
+          // selectedAccount.value = null;
         }
       });
     }
@@ -313,7 +313,7 @@ const deleteAccount = () => {
     if (chrome.runtime.lastError) {
       alert("Error: " + chrome.runtime.lastError.message);
     } else {
-      alert(`Account ${selectedAccount.value} deleted successfully`);
+      // alert(`Account ${selectedAccount.value} deleted successfully`);
       accounts.value = updatedAccounts;
       selectedAccount.value = null;
     }
@@ -329,7 +329,7 @@ const deleteAllAccounts = () => {
       if (chrome.runtime.lastError) {
         alert("Error: " + chrome.runtime.lastError.message);
       } else {
-        alert("All accounts deleted successfully");
+        // alert("All accounts deleted successfully");
         accounts.value = {};
         selectedAccount.value = null;
       }
@@ -363,9 +363,9 @@ const loadAllCookies = () => {
   });
 };
 
-const openOptions = () => {
-  chrome.runtime.openOptionsPage();
-}
+// const openOptions = () => {
+//   chrome.runtime.openOptionsPage();
+// }
 
 const addDomain = () => {
   try {
