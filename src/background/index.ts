@@ -77,16 +77,31 @@ async function checkTabsAndCleanAccounts() {
   // 创建一个新的对象来存储修改后的账户
   const updatedAccounts: Record<string, Account> = {}
   Object.keys(accounts).forEach((accountKey) => {
-    const modifiedKey = modifyTabIdFromKey(accountKey, true)
+    let modifiedKey = modifyTabIdFromKey(accountKey, true)
+
+    // 检查键是否已经存在
+    while (updatedAccounts.hasOwnProperty(modifiedKey)) {
+      // 如果键已经存在，则减少键名中的数字
+      modifiedKey = decrementNumberInKey(modifiedKey)
+    }
+
     // 将修改后的键及其对应的值放回新的对象
     updatedAccounts[modifiedKey] = accounts[accountKey]
   })
   console.log('已经修改不存在的选项卡cookie in checkTabsAndCleanAccounts')
   // 将更新后的账户列表保存回插件的存储
   chrome.storage.local.set({ accounts: updatedAccounts })
+}
 
-  // 更新全局变量
-  // accounts = updatedAccounts
+function decrementNumberInKey(key: string): string {
+  const firstDashIndex = key.indexOf('-')
+  const part1 = key.substring(0, firstDashIndex) // "somekey"
+  const part2 = key.substring(firstDashIndex + 1) // "1-2-3"
+  const keyParts = [part1, part2]
+  const lastPart = keyParts[1]
+  const newLastPart = (parseInt(lastPart, 10) - 1).toString()
+  keyParts[1] = newLastPart
+  return keyParts.join('-')
 }
 
 // 在浏览器启动时调用此函数
@@ -144,7 +159,7 @@ chrome.runtime.onMessage.addListener(async (request: any, _sender: chrome.runtim
         // Get the URL for the account
         const url = getURLFromAccountKey(request.account)
         // Load cookies for this account
-        const rootDomain = getRootDomain(url) // todo Is this code necessary? 8.29
+        const rootDomain = getRootDomain(url) // TODO: Is this code necessary? 8.29
         if (rootDomain) {
           await loadCookies(rootDomain, accounts[request.account].cookies)
           //加载好cookies之后要刷新页面 8.25
@@ -378,7 +393,7 @@ async function removeClosedAccounts() {
 
   // 遍历现有的账户
   for (const [key, account] of Object.entries(accounts)) {
-    // 如果账户没有被标记为删除，则添加到新的对象中
+    // 如果账户没有被标记为关闭，则添加到新的对象中
     if (!account.closed || account.alias) {
       //如果有alias，说明是用户手动添加的，不应该删除
       //小心这里操作空对象，会报错，目前已修复9.9
@@ -400,7 +415,7 @@ async function removeClosedAccounts() {
 function extractTabIdFromKey(key: string, modify = false) {
   const keyParts = key.split('-')
   if (modify) {
-    return keyParts[0] + '-' + '-1'
+    return keyParts[0] + '-' + '0'
   }
   return keyParts[keyParts.length - 1] // tabID存储在键的最后一部分
 }

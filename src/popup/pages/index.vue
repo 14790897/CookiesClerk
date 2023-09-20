@@ -14,41 +14,41 @@
             </option>
           </select>
           <div class="flex ">
-            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded mr-1 " @click="addAccount"
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded mr-1 shadow-lg" @click="addAccount"
               data-i18n="addAccount">Add</button>
             <!-- Rename Button 9.13-->
-            <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded" @click="renameAccount"
+            <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded shadow-lg" @click="renameAccount"
               data-i18n="renameAccount">Rename</button>
           </div>
         </div>
 
         <div class="justify-center items-center ">
-          <button class="bg-green-500 hover:bg-green-700 text-white font-bold rounded mr-2" @click="saveCookies"> <img
+          <button class="bg-green-500 hover:bg-green-700 text-white font-bold rounded mr-2 shadow-lg" @click="saveCookies"> <img
               src="../../assets/SaveCookies.png" alt="Save Cookies Icon" title="Save Cookies To Account"
               :class="imageClass" data-i18n-title="saveCookiesToAccount">
           </button>
-          <button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold rounded mr-2" @click="loadCookies"><img
+          <button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold rounded mr-2 shadow-lg" @click="loadCookies"><img
               src="../../assets/LoadCookies.png" alt="Load Cookies Icon" title="Load Cookies From Account"
               :class="imageClass" data-i18n-title="loadCookiesFromAccount"></button>
-          <button class="bg-red-500 hover:bg-red-700 text-white font-bold  rounded mr-2" @click="deleteAccount"><img
+          <button class="bg-red-500 hover:bg-red-700 text-white font-bold  rounded mr-2 shadow-lg" @click="deleteAccount"><img
               src="../../assets/DeleteAccount.png" alt="Delete Account Icon" title="Delete Account" :class="imageClass"
               data-i18n-title="deleteAccount">
           </button>
-          <button class="bg-red-500 hover:bg-red-700 text-white font-bold rounded mr-2" @click="deleteAllAccounts"><img
+          <button class="bg-red-500 hover:bg-red-700 text-white font-bold rounded mr-2 shadow-lg" @click="deleteAllAccounts"><img
               src="../../assets/DeleteAllAccount.png" alt="Delete All Account Icon" title="Delete All Account"
               :class="imageClass" data-i18n-title="deleteAllAccount"></button>
-          <button class="bg-red-500 hover:bg-red-700 text-white font-bold rounded mr-2"
+          <button class="bg-red-500 hover:bg-red-700 text-white font-bold rounded mr-2 shadow-lg"
             @click="clearAllClosedCookies"><img src="../../assets/ClearAllClosedCookies.png"
               alt="Clear All Closed Cookies Icon" title="Clear All Closed Cookies" :class="imageClass"
               data-i18n-title="clearAllClosedCookies"></button>
-          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2" @click="clearCookies">
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2 shadow-lg" @click="clearCookies">
             <img src="../../assets/ClearCookies.png" alt="Clear Cookies Icon" title="Clear Cookies" :class="imageClass"
               data-i18n-title="clearCookies">
           </button>
-          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2" @click="saveAllCookies">
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2 shadow-lg" @click="saveAllCookies">
             <img src="../../assets/SaveAllCookies.png" alt="Save All Cookies Icon" title="Save All Cookies"
               :class="imageClass" data-i18n-title="saveAllCookies"></button>
-          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2" @click="loadAllCookies">
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2 shadow-lg" @click="loadAllCookies">
             <img src="../../assets/LoadAllCookies.png" alt="Load All Cookies Icon" title="Load All Cookies"
               :class="imageClass" data-i18n-title="loadAllCookies"></button>
           <!-- <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2 p-2" @click="openOptions"
@@ -64,7 +64,7 @@
         <div class="flex items-center mb-2">
           <input v-model="newDomain" type="text" placeholder="Add new domain" required class="form-input w-48 mt-1 mr-2"
             data-i18n-placeholder="domainExample">
-          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold  py-2 px-4 rounded mr-2 " @click="addDomain"
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold  py-2 px-4 rounded mr-2 shadow-lg" @click="addDomain"
             data-i18n="addNewDomain">Add</button>
         </div>
         <label class="flex items-center space-x-2">
@@ -90,10 +90,10 @@
     </div>
   </div>
 
-  <!-- <div class="text-center m-4">
-    <RouterLink to="/about">About</RouterLink>
-  </div> -->
 </template>
+<!-- <div class="text-center m-4">
+  <RouterLink to="/about">About</RouterLink>
+</div> -->
 
 <script setup lang="ts">
 
@@ -186,6 +186,10 @@ chrome.storage.local.get('modifyLinkEnabled', (data) => {
   // if (spanElement.value) {
   //   spanElement.value.textContent = 'please refresh website';
   // }
+});
+
+chrome.storage.local.get('onStartupClearEnabled', (data) => {
+  onStartupClearEnabled.value = data.onStartupClearEnabled || false;
 });
 
 chrome.storage.local.get('accounts', (data) => {
