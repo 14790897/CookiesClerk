@@ -42,7 +42,7 @@ You can install CookiesClerk.
   - `assets` - assets used in Vue components 
 - `dist` - built-in files that also serve as stubs for Vite development. 
 ## Development 
-``
+```
 pnpm dev  
 ```
 Then load the extension in your browser using the dist/ folder .
@@ -51,7 +51,7 @@ Building
 To build the extension, run 
 ```
 pnpm build  
-``
+```
 
 ## Contribute 
     
