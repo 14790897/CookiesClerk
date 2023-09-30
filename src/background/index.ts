@@ -442,12 +442,20 @@ function extractTabIdFromKey(key: string, modify = false) {
 
 const modifyTabIdFromKey = extractTabIdFromKey
 
+function extractDomainFromKey(key: string) {
+  const keyParts = key.split('-')
+  return keyParts[0] // 域名存储在键的第一部分
+}
+
 // Handle tab closure events
 chrome.tabs.onRemoved.addListener(async function (tabId, _removeInfo) {
   try {
+    let rootDomain: string
     const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
     for (const key in accounts) {
       const storedTabId = extractTabIdFromKey(key)
+      rootDomain = extractDomainFromKey(key)
+      await clearCookiesForDomain(rootDomain)
       if (storedTabId === String(tabId)) {
         // delete accounts[key]
         accounts[key].closed = true
@@ -504,6 +512,7 @@ async function handleTabChange(tabId: number) {
       //load之前先把已经存在的cookie删除 8.18
       //So in fact we should compare the cookies first. If they are same, then we shouldn't do anything.
       await clearCookiesForDomain(rootDomain)
+      await clearBrowsingDataForDomain(rootDomain)
     } else {
       console.log('%c currentTabId is null, there may be a bug', 'background: #ff0000; color: #fff')
     }
@@ -528,7 +537,8 @@ async function handleTabChange(tabId: number) {
 
     // Load the appropriate cookies
     if (key in accounts && accounts[key]) {
-      //让popup页面显示当前所在的账户，popup页面的显示是通过sync.get来实现的(由于每次打开会自动获取，所以不需要持续监听) 为什么要写把这个放在if语句里面?因为这说明这是一个新打开的页面,暂时不保存可以方便用户创建自己的账户
+      //让popup页面显示当前所在的账户，popup页面的显示是通过sync.get来实现的(由于每次打开会自动获取，所以不需要持续监听) 为什么要把这个放在if语句里面?因为这说明这是一个新打开的页面,暂时不保存可以方便用户创建自己的账户
+      //这个需要在页面加载完成之后再执行，否则报错
       await chrome.storage.sync.set({ selectedAccount: key })
       //The code to create a mask 8.29
       // await injectMaskScript(tabId)
@@ -661,6 +671,34 @@ async function clearCookiesForDomain(domain: string) {
     console.log('%c clear----------------------', 'background: #00ff00; color: #000')
   } catch (error) {
     console.error('%c Error during cookie operation:', 'background: #ff0000; color: #fff', error)
+  }
+}
+
+// if (!url.startsWith('http://') && !url.startsWith('https://')) {
+//   url = 'http://' + url // 添加默认的 http 协议
+// }
+async function clearBrowsingDataForDomain(domain: string) {
+  try {
+    let url = domain
+    if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
+      url = 'http://' + domain // 添加默认的 http 协议
+    }
+    await chrome.browsingData.remove(
+      {
+        origins: [url],
+      },
+      {
+        cacheStorage: true,
+        cookies: true,
+        fileSystems: true,
+        indexedDB: true,
+        localStorage: true,
+        serviceWorkers: true,
+        webSQL: true,
+      }
+    )
+  } catch (error) {
+    console.log('An error occurred in clearBrowsingDataForDomain:', error)
   }
 }
 
