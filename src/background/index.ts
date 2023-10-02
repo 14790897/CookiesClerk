@@ -133,6 +133,7 @@ chrome.runtime.onMessage.addListener(async (request: any, _sender: chrome.runtim
         console.error('No active tab found in current window in savecookies manually.')
         return
       }
+          //Don't throw error in this code, because the domain is not restricted
       const [rootDomain, key, isNotInDomain] = (await processDomain(tabs[0], false)) as [string, string, boolean] //isNotInDomain不一定返回布尔值吧 9.9
       if (isNotInDomain) {
         const trackedDomains = await getTrackedDomains() //8.27
@@ -145,8 +146,7 @@ chrome.runtime.onMessage.addListener(async (request: any, _sender: chrome.runtim
       }
       const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
       if (request.account in accounts) {
-        // await saveCurrentCookies(rootDomain, key, request.account)
-        await saveCurrentCookies(rootDomain, request.account, true)
+        await saveCurrentCookies(rootDomain, request.account, true)//这里的true代表手动保存
       } else {
         console.log("We don't receive the account you select in saveCookies manually", 'accounts:', accounts, 'request.account:', request.account)
       }
@@ -159,7 +159,8 @@ chrome.runtime.onMessage.addListener(async (request: any, _sender: chrome.runtim
       const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
       if (request.account in accounts && accounts[request.account]) {
         // Get the URL for the account
-        const rootDomain = getURLFromAccountKey(request.account)
+        // const rootDomain = getURLFromAccountKey(request.account)
+        const { tab, rootDomain} = await createTabForAccount(accounts[request.account])
         // Load cookies for this account
         // const rootDomain = getRootDomain(url) // TODO: Is this code necessary? 8.29
         if (rootDomain) {
@@ -168,6 +169,7 @@ chrome.runtime.onMessage.addListener(async (request: any, _sender: chrome.runtim
             if (changeInfo.status === 'complete') {
               console.log('进入手动加载cookies的loadcookies部分')
               loadCookies(rootDomain, accounts[request.account].cookies)
+              loadLocalStorage(tabId, accounts[request.account].localstorage)
               //加载好cookies之后要刷新页面 8.25
               await reloadActiveTab()
               // 移除监听器
@@ -177,11 +179,11 @@ chrome.runtime.onMessage.addListener(async (request: any, _sender: chrome.runtim
 
           chrome.tabs.onUpdated.addListener(listener)
 
-          // 确保URL是完整的
-          const fullURL = rootDomain.startsWith('http') ? rootDomain : 'https://' + rootDomain
-          await chrome.tabs.create({ url: fullURL })
+          // // 确保URL是完整的
+          // const fullURL = rootDomain.startsWith('http') ? rootDomain : 'https://' + rootDomain
+          // await chrome.tabs.create({ url: fullURL })
           // await chrome.tabs.update(tabs[0].id, { url: fullURL }) //刷新界面 9.20
-          console.log('已经刷新界面，url：', fullURL)
+          // console.log('已经刷新界面，url：', fullURL)
           // request.account = null 不能在这里使用，因为会先执行这个，再加载cookies，到时cookies无法访问 9.20
         } else {
           console.error('Unable to get rootDomain from url in loadCookies manually.')
@@ -202,6 +204,7 @@ chrome.runtime.onMessage.addListener(async (request: any, _sender: chrome.runtim
     //Don't throw error in this code, because the domain is not restricted
     const [rootDomain, key] = (await processDomain(tabs[0], false)) as [string, string]
     clearCookiesForDomain(rootDomain)
+    clearBrowsingDataForDomain(rootDomain)
     reloadActiveTab()
   } else if (request.action == 'saveAllCookies') {
     const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
@@ -232,7 +235,7 @@ async function loadLocalStorage(tabId: number, data: Record<string, string>) {
   }
 }
 
-async function saveAndClearLocalStorage(tabId: number) {
+async function saveLocalStorage(tabId: number) {
   try {
     const result = await chrome.scripting.executeScript({
       target: { tabId },
@@ -240,7 +243,7 @@ async function saveAndClearLocalStorage(tabId: number) {
         // 保存当前页面的localStorage数据
         const savedData = { ...localStorage }
         // 清除当前页面的localStorage
-        localStorage.clear()
+        localStorage.clear()  //由clearBrowsingDataForDomain代替， 但是效果不好
         return savedData
       },
     })
@@ -264,6 +267,7 @@ async function reloadActiveTab() {
 }
 
 async function createTabForAccount(account: Account) {
+  console.log('account.cookies[0].domain',account)
   const rootDomain = getRootDomain(account.cookies[0].domain)
   if (!rootDomain) {
     throw new Error('Root domain not found in processDomain.')
@@ -322,6 +326,7 @@ async function handleLoadAllCookies(loadSavedSelectedAccounts: boolean) {
 // 监听标签页更新事件
 chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
   try {
+    console.log('onupdated触发')
     // 可能同时刷新多个标签页,要对符合条件的都执行脚本  9.12
     const modifyLinkEnabled = await getStorageData<boolean>('modifyLinkEnabled', false) //9.12
     if (modifyLinkEnabled) {
@@ -342,21 +347,27 @@ chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
     //   await chrome.tabs.reload(tabId)
     // }
     //下面的代码是为了在刷新界面的时候如果目标网址是要追踪的网址那么就加载对应的cookies,主要是为上面的加载所有保存的账户的网页所服务的,因为它会立即切换到第一个网页,但是这时候还没有运行loadcookies的代码,所以需要在这里运行一下 9.12
+    const [rootDomain, key] = (await processDomain(tab)) as [string, string]
     const accounts = await getStorageData<Record<string, Account>>('accounts')
     if (changeInfo.status === 'complete') {
       for (const [key, account] of Object.entries(accounts)) {
         if (account.refresh) {
           if (key.includes(tabId.toString())) {
-            const [rootDomain, _] = (await processDomain(tab)) as [string, string]
-            await chrome.storage.sync.set({ selectedAccount: key })
+            // const [rootDomain, _] = (await processDomain(tab)) as [string, string]
+            // await chrome.storage.sync.set({ selectedAccount: key })
             await loadCookies(rootDomain, account.cookies)
             await chrome.tabs.reload(tabId)
             account.refresh = false
           }
         }
       }
+      // await handleTabChange(tabId)
+      // 页面第一次加载时，初始化accounts[key]   9.30
+      accounts[key] = accounts[key] || {}
+      await chrome.storage.local.set({ accounts: accounts })
+      await chrome.storage.sync.set({ selectedAccount: key })
+      // console.log('accounts in onUpdated:', accounts)
     }
-    await chrome.storage.local.set({ accounts: accounts })
   } catch (error) {
     console.log('An error occurred in onUpdated:', error)
   }
@@ -450,19 +461,48 @@ function extractDomainFromKey(key: string) {
 // Handle tab closure events
 chrome.tabs.onRemoved.addListener(async function (tabId, _removeInfo) {
   try {
+    let shouldSaveAccounts = false
     let rootDomain: string
     const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
     for (const key in accounts) {
       const storedTabId = extractTabIdFromKey(key)
-      rootDomain = extractDomainFromKey(key)
-      await clearCookiesForDomain(rootDomain)
       if (storedTabId === String(tabId)) {
-        // delete accounts[key]
+        rootDomain = extractDomainFromKey(key)
+        // handleTabChange(tabId) 是不能这么用的，这时id都无法再找到 9.30
+        try {
+          console.log('rootDomain in remove listener:', rootDomain)
+          // await saveCurrentCookies(rootDomain, key)
+          // todo 将saveCurrentCookies功能排进一步拆分 10.1
+          const cookies = await chrome.cookies.getAll({ domain: rootDomain })
+          accounts[key].cookies = cookies
+          try {
+            const tabId = extractTabIdFromKey(key)
+            const result = await saveLocalStorage(Number(tabId))
+            if (result && result[0] && result[0].result) {
+              accounts[key].localstorage = result[0].result
+              console.log('成功保存localstorage in saveCurrentCookies, account key为:', key)
+            } else {
+              console.log("can't get result in saveLocalStorage in saveCurrentCookies.")
+            }
+          } catch (error) {
+            console.log('在saveCurrentCookies中需要忽视的报错 in saveLocalStorage:', error)
+          }
+          console.log('保存关闭页面的cookies in remove listener')
+        } catch (error) {
+          console.log('在onRemoved中需要忽视的报错 in saveCurrentCookies:', error)
+        }
+        await clearBrowsingDataForDomain(rootDomain)
+        console.log('保存关闭页面的cookies并在之后清除 in remove listener')
+        // delete accounts[key] 可以选择直接删除
         accounts[key].closed = true
+        shouldSaveAccounts = true
       }
     }
-    // 存储更新后的`accounts`对象
-    await chrome.storage.local.set({ accounts: accounts })
+    if (shouldSaveAccounts) {
+      // 存储更新后的`accounts`对象
+      await chrome.storage.local.set({ accounts: accounts })
+      console.log('已经保存所有关闭页面的cookies 的account in remove listener')
+    }
   } catch (error) {
     console.log('An error occurred in remove listener:', error)
   }
@@ -488,17 +528,18 @@ async function handleTabChange(tabId: number) {
 
       await saveCurrentCookies(rootDomain, key) //todo 这里可以将里面的保存提到外面来执行 9.13
       // save and clear localstorage 9.13
-      const result = await saveAndClearLocalStorage(currentTabId)
-      try {
-        if (result && result[0] && result[0].result) {
-          accounts[key].localstorage = result[0].result
-          await chrome.storage.local.set({ accounts: accounts })
-        } else {
-          console.log("can't get result in saveAndClearLocalStorage in handleTabChange.")
-        }
-      } catch (error) {
-        console.log('在handletapchange中需要忽视的报错 in saveAndClearLocalStorage:', error)
-      }
+      // const result = await saveAndClearLocalStorage(currentTabId)
+      // try {
+      //   if (result && result[0] && result[0].result) {
+      //     accounts[key].localstorage = result[0].result
+      //     await chrome.storage.local.set({ accounts: accounts })
+      //     console.log('成功保存localstorage in handletabchange, account key为:', key)
+      //   } else {
+      //     console.log("can't get result in saveAndClearLocalStorage in handleTabChange.")
+      //   }
+      // } catch (error) {
+      //   console.log('在handletabchange中需要忽视的报错 in saveAndClearLocalStorage:', error)
+      // }
 
       console.log('handleTabChange中saveCurrentCookies已触发')
 
@@ -517,7 +558,7 @@ async function handleTabChange(tabId: number) {
       console.log('%c currentTabId is null, there may be a bug', 'background: #ff0000; color: #fff')
     }
   } catch (error) {
-    console.log('在handletapchange中需要忽视的报错processDomain报错,发生在保存以及清除cookies时', error)
+    console.log('在handletabchange中需要忽视的报错processDomain报错,发生在保存以及清除cookies时', error)
   }
 
   // Update it to the currently active tab ID
@@ -566,7 +607,7 @@ async function saveCurrentCookies(rootDomain: string, key: string, manualSave: b
 
     // Save the current cookies for this URL and tab index
     const cookies = await chrome.cookies.getAll({ domain: rootDomain })
-
+    console.log('cookies in saveCurrentCookies:', cookies)
     // 确保 accounts[key] 已初始化
     accounts[key] = accounts[key] || {}
     accounts[key].cookies = cookies
@@ -576,7 +617,18 @@ async function saveCurrentCookies(rootDomain: string, key: string, manualSave: b
     accounts[key].manualSave = !!manualSave
     // }
     console.log('成功保存cookie, account key为:', key)
-
+    try {
+      const tabId = extractTabIdFromKey(key)
+      const result = await saveLocalStorage(Number(tabId))
+      if (result && result[0] && result[0].result) {
+        accounts[key].localstorage = result[0].result
+        console.log('成功保存localstorage in saveCurrentCookies, account key为:', key)
+      } else {
+        console.log("can't get result in saveLocalStorage in saveCurrentCookies.")
+      }
+    } catch (error) {
+      console.log('在saveCurrentCookies中需要忽视的报错 in saveLocalStorage:', error)
+    }
     await chrome.storage.local.set({ accounts: accounts })
   } catch (error) {
     console.log('An error occurred in saveCurrentCookies. Notice this error may cause the function not work:', error)
@@ -681,7 +733,7 @@ async function clearBrowsingDataForDomain(domain: string) {
   try {
     let url = domain
     if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
-      url = 'http://' + domain // 添加默认的 http 协议
+      url = 'https://' + domain // 添加默认的 http 协议
     }
     await chrome.browsingData.remove(
       {
@@ -697,6 +749,7 @@ async function clearBrowsingDataForDomain(domain: string) {
         webSQL: true,
       }
     )
+    console.log('Browsing data cleared successfully in clearBrowsingDataForDomain!')
   } catch (error) {
     console.log('An error occurred in clearBrowsingDataForDomain:', error)
   }
