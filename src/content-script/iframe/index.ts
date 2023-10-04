@@ -5,13 +5,22 @@ import '../../assets/base.scss'
 import App from './app.vue'
 import './index.scss'
 
+routes.push({
+  path: '/',
+  redirect: '/iframe',
+})
+
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes,
 })
 
-router.beforeEach((to) => {
-  if (to.path === '/') return '/iframe'
+router.beforeEach((to, from, next) => {
+  if (to.path === '/') {
+    return next('/iframe')
+  }
+
+  next()
 })
 
 console.log({ routes })

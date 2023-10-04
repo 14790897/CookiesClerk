@@ -1,10 +1,11 @@
 import { crx } from '@crxjs/vite-plugin'
 import vue from '@vitejs/plugin-vue'
-import { dirname, join, relative, resolve } from 'path'
+import { dirname, relative } from 'path'
 import AutoImport from 'unplugin-auto-import/vite'
 import IconsResolver from 'unplugin-icons/resolver'
 import Icons from 'unplugin-icons/vite'
 import Components from 'unplugin-vue-components/vite'
+import { URL, fileURLToPath } from 'url'
 import { defineConfig } from 'vite'
 import Pages from 'vite-plugin-pages'
 import manifest from './manifest.config'
@@ -13,8 +14,9 @@ import manifest from './manifest.config'
 export default defineConfig({
   resolve: {
     alias: {
-      '~': resolve(join(__dirname, 'src')),
-      src: resolve(join(__dirname, 'src')),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '~': fileURLToPath(new URL('./src', import.meta.url)),
+      src: fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   plugins: [
@@ -67,6 +69,7 @@ export default defineConfig({
     Icons({
       autoInstall: true,
       compiler: 'vue3',
+      scale: 1.5,
     }),
 
     // rewrite assets to use relative path

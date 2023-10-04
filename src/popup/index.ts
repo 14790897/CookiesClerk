@@ -26,13 +26,22 @@ import './index.scss'
 //   messages,
 // })
 
+routes.push({
+  path: '/',
+  redirect: '/popup',
+})
+
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes,
 })
 
-router.beforeEach((to) => {
-  if (to.path === '/') return '/popup'
+router.beforeEach((to, from, next) => {
+  if (to.path === '/') {
+    return next('/popup')
+  }
+
+  next()
 })
 
 createApp(App).use(router).mount('#app')
