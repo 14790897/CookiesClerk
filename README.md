@@ -12,6 +12,9 @@ CookiesClerk 是一款谷歌 Chrome 浏览器插件，可简化同一网站多�
 2. 点击 "添加到 Chrome "按钮安装插件。
 3. 插件将添加到您的浏览器中。
 
+## 教程
+https://cookiesclerk.liuweiqing.life/
+
 ### 功能
 
 - 轻松管理同一网站上多个账户的 cookies。

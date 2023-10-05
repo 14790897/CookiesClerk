@@ -12,6 +12,9 @@ You can install CookiesClerk.
 2. Click the "Add to Chrome" button to install the plugin .
 3. The plugin will be added to your browser .
 
+## Guide
+https://cookiesclerk.liuweiqing.life/
+
 ### Features 
 
 - Easily manage cookies for multiple accounts on the same website .
