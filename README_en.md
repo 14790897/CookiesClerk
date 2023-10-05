@@ -14,6 +14,7 @@ You can install CookiesClerk.
 
 ## Guide
 https://cookiesclerk.liuweiqing.life/
+and join the group [telegram](https://t.me/+82ubVolec6MwNGU1)
 
 ### Features 
 
