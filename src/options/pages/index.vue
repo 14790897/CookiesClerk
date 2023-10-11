@@ -42,8 +42,8 @@
     <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2" @click="loadAllCookies">
       <img src="../../assets/LoadAllCookies.png" alt="Load All Cookies Icon" title="Load All Cookies"
         class="w-16 h-16 mr-2"></button>
-    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2"
-      @click="showNotification">notification</button>
+    <!-- <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2"
+      @click="showNotification">notification</button> -->
   </div>
   <div class="container mx-auto p-4">
     <div class="bg-white-200 p-4 rounded">

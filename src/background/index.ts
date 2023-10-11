@@ -951,82 +951,82 @@ async function modifyLinksInTab(tabId: number) {
   }
 }
 
-// 清除旧通知
-const clearPreviousNotification = (notificationId: string) => {
-  chrome.notifications.clear(notificationId, (wasCleared) => {
-    if (wasCleared) {
-      console.log('Previous notification cleared')
-    } else {
-      console.log('Previous notification not found')
-    }
-  })
-}
+// // 清除旧通知
+// const clearPreviousNotification = (notificationId: string) => {
+//   chrome.notifications.clear(notificationId, (wasCleared) => {
+//     if (wasCleared) {
+//       console.log('Previous notification cleared')
+//     } else {
+//       console.log('Previous notification not found')
+//     }
+//   })
+// }
 
-chrome.notifications.onButtonClicked.addListener(async function loadCookiesFromLastTab(clickedNotificationId, buttonIndex) {
-  if (clickedNotificationId === '1') {
-    if (buttonIndex === 0) {
-      // 用户点击了 Yes 按钮
-      // const clearCookiesEnabled = await getStorageData<boolean>('clearCookiesEnabled', false) //8.27
-      const currentTabId = await getStorageData<number | null>('currentTabId', null) //我们认为created的先触发所以可以用之前activated时保存的currentTabID
-      const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
-      const keys = Object.keys(accounts)
-      let isMatched = false // Flag to track if a match is found
+// chrome.notifications.onButtonClicked.addListener(async function loadCookiesFromLastTab(clickedNotificationId, buttonIndex) {
+//   if (clickedNotificationId === '1') {
+//     if (buttonIndex === 0) {
+//       // 用户点击了 Yes 按钮
+//       // const clearCookiesEnabled = await getStorageData<boolean>('clearCookiesEnabled', false) //8.27
+//       const currentTabId = await getStorageData<number | null>('currentTabId', null) //我们认为created的先触发所以可以用之前activated时保存的currentTabID
+//       const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
+//       const keys = Object.keys(accounts)
+//       let isMatched = false // Flag to track if a match is found
 
-      for (const key of keys) {
-        if (parseInt(extractTabIdFromKey(key)) === currentTabId) {
-          isMatched = true
-          const url = getURLFromAccountKey(key)
-          const rootDomain = getRootDomain(url) // todo Is this code necessary? 8.29
-          if (rootDomain) {
-            await loadCookies(rootDomain, accounts[key].cookies)
-            //加载好cookies之后要刷新页面 8.25
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
-            if (tabs[0] && tabs[0].id) {
-              await chrome.tabs.reload(tabs[0].id)
-            } else {
-              console.log('tabs[0]不存在，无法刷新页面 in loadCookies manually.')
-            }
-          } else {
-            console.error('Unable to get rootDomain from url in loadCookies manually.')
-          }
-          console.log('loadCookiesFromLastTab中loadCookies')
+//       for (const key of keys) {
+//         if (parseInt(extractTabIdFromKey(key)) === currentTabId) {
+//           isMatched = true
+//           const url = getURLFromAccountKey(key)
+//           const rootDomain = getRootDomain(url) // todo Is this code necessary? 8.29
+//           if (rootDomain) {
+//             await loadCookies(rootDomain, accounts[key].cookies)
+//             //加载好cookies之后要刷新页面 8.25
+//             const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+//             if (tabs[0] && tabs[0].id) {
+//               await chrome.tabs.reload(tabs[0].id)
+//             } else {
+//               console.log('tabs[0]不存在，无法刷新页面 in loadCookies manually.')
+//             }
+//           } else {
+//             console.error('Unable to get rootDomain from url in loadCookies manually.')
+//           }
+//           console.log('loadCookiesFromLastTab中loadCookies')
 
-          console.log('%c ---------------------------------------------------', 'background: #00ff00; color: #000')
-          console.log('%c The tab we hav just left is tracked, so we can keep these cookies in new tab', 'background: #ff0000; color: #fff')
-          console.log('%c ---------------------------------------------------', 'background: #00ff00; color: #000')
-          break // Found a match, no need to continue looping
-        }
-      }
-      // if (isMatched) {
-      //   chrome.storage.local.set({ clearCookiesEnabled: false })
-      // } else {
-      //   chrome.storage.local.set({ clearCookiesEnabled: clearCookiesEnabled })
-      // }
-    } else if (buttonIndex === 1) {
-      // 用户点击了 No 按钮
-      // 执行 No 的操作,Don't do anything
-    }
-  }
-})
+//           console.log('%c ---------------------------------------------------', 'background: #00ff00; color: #000')
+//           console.log('%c The tab we hav just left is tracked, so we can keep these cookies in new tab', 'background: #ff0000; color: #fff')
+//           console.log('%c ---------------------------------------------------', 'background: #00ff00; color: #000')
+//           break // Found a match, no need to continue looping
+//         }
+//       }
+//       // if (isMatched) {
+//       //   chrome.storage.local.set({ clearCookiesEnabled: false })
+//       // } else {
+//       //   chrome.storage.local.set({ clearCookiesEnabled: clearCookiesEnabled })
+//       // }
+//     } else if (buttonIndex === 1) {
+//       // 用户点击了 No 按钮
+//       // 执行 No 的操作,Don't do anything
+//     }
+//   }
+// })
 
-const showNotification = () => {
-  const notificationId = '1' // Use a unique ID for your notification
+// const showNotification = () => {
+//   const notificationId = '1' // Use a unique ID for your notification
 
-  // 清除之前的通知
-  clearPreviousNotification(notificationId)
+//   // 清除之前的通知
+//   clearPreviousNotification(notificationId)
 
-  const options = {
-    type: 'basic' as chrome.notifications.TemplateType,
-    iconUrl: chrome.runtime.getURL('src/assets/icon.png'),
-    title: 'CookiesClerk',
-    message: 'Do you want to use the cookies from last tab?',
-    buttons: [{ title: 'Yes' }, { title: 'No' }],
-  }
+//   const options = {
+//     type: 'basic' as chrome.notifications.TemplateType,
+//     iconUrl: chrome.runtime.getURL('src/assets/icon.png'),
+//     title: 'CookiesClerk',
+//     message: 'Do you want to use the cookies from last tab?',
+//     buttons: [{ title: 'Yes' }, { title: 'No' }],
+//   }
 
-  chrome.notifications.create(notificationId, options, () => {
-    console.log('%c Notification created', 'background: #ff0000; color: #fff')
-  })
-}
+//   chrome.notifications.create(notificationId, options, () => {
+//     console.log('%c Notification created', 'background: #ff0000; color: #fff')
+//   })
+// }
 
 // function fixCookieDomainAndUrl(cookie: CookieType) {
 //   const fixedCookie = { ...cookie }
