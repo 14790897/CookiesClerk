@@ -1070,11 +1070,10 @@ chrome.runtime.onInstalled.addListener(async (opt) => {
 
     chrome.tabs.create({
       active: true,
-      url: chrome.runtime.getURL('./installed.html'),
+      url: "https://cookiesclerk.liuweiqing.life/",
     })
   }
 })
 
-console.log('hello world from background')
 
 export {}
