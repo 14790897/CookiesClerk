@@ -1075,5 +1075,10 @@ chrome.runtime.onInstalled.addListener(async (opt) => {
   }
 })
 
+//卸载弹出调查页面 11.10
+chrome.runtime.setUninstallURL(
+  'https://uninstall.liuweiqing.top/uninstall-survey?projectName=CookiesClerk'
+)
+
 
 export {}
