@@ -1,9 +1,9 @@
 {
-  "title":{
+  "title": {
     "message": "Cookies店员",
     "description": "Title text"
   },
-   "accountManagement": {
+  "accountManagement": {
     "message": "账户管理",
     "description": "账户管理部分的标题"
   },
@@ -43,7 +43,7 @@
     "message": "删除",
     "description": "删除按钮的标签"
   },
-   "saveCookiesToAccount": {
+  "saveCookiesToAccount": {
     "message": "保存Cookies到账户",
     "description": "保存Cookies按钮的标题"
   },
@@ -75,9 +75,21 @@
     "message": "加载所有Cookies",
     "description": "加载所有Cookies按钮的标题"
   },
-    "options": {
+  "options": {
     "message": "选项",
     "description": "打开选项界面"
+  },
+  "exportData": {
+    "message": "导出数据",
+    "description": "导出数据按钮的标题"
+  },
+  "loading": {
+    "message": "加载中...",
+    "description": "加载中的提示"
+  },
+  "importData": {
+    "message": "导入数据",
+    "description": "导入数据按钮的标题"
   },
   "greeting": {
     "message": "Hello",

@@ -1,12 +1,12 @@
 <template>
     <div class="flex items-center justify-between space-mx-4">
-        <button @click="exportData" class=" rounded hover:bg-green-600 transition ml-6">
+        <button @click="exportData" class=" rounded hover:bg-green-600 transition ml-6" data-i18n="exportData">
             导出数据
         </button>
 
         <input type="file" id="fileInput" ref="fileInput" @change="handleFileChange" accept=".json" class="hidden">
 
-        <p v-if="state.isLoading" class="text-gray-500">
+        <p v-if="state.isLoading" class="text-gray-500" data-i18n="loading">
             加载中...
         </p>
 
@@ -14,7 +14,7 @@
             {{ state.errorMessage }}
         </p>
 
-        <button @click="triggerFileInput" class=" rounded hover:bg-green-600 transition mr-6">
+        <button @click="triggerFileInput" class=" rounded hover:bg-green-600 transition mr-6" data-i18n="importData">
             导入数据
         </button>
     </div>

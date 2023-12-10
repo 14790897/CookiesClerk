@@ -1,5 +1,5 @@
 {
-  "title":{
+  "title": {
     "message": "CookiesClerk",
     "description": "Title text"
   },
@@ -21,7 +21,7 @@
   },
   "domainExample": {
     "message": "Example: google.com",
-     "description": "Placeholder for the new domain input box"
+    "description": "Placeholder for the new domain input box"
   },
   "addNewDomain": {
     "message": "Add",
@@ -35,7 +35,7 @@
     "message": "Restrict tracked domain's links to open only in the current tab",
     "description": "Description for the second checkbox"
   },
-  "onStartupClearEnabled":{
+  "onStartupClearEnabled": {
     "message": "Clear closed and no-alias cookies on startup",
     "description": "Description for the third checkbox"
   },
@@ -78,6 +78,18 @@
   "options": {
     "message": "Options",
     "description": "open options"
+  },
+  "exportData": {
+    "message": "Export Data",
+    "description": "Title for the Export Data button"
+  },
+  "loading": {
+    "message": "Loading...",
+    "description": "Loading text"
+  },
+  "importData": {
+    "message": "Import Data",
+    "description": "Title for the Import Data button"
   },
   "greeting": {
     "message": "Hello",
