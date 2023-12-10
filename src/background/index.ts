@@ -134,7 +134,7 @@ chrome.runtime.onMessage.addListener(async (request: any, _sender: chrome.runtim
       }
       const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
       if (request.account in accounts) {
-        await saveCurrentCookies(rootDomain, request.account, true)//这里的true代表手动保存
+        await saveCurrentCookies(rootDomain, request.account, true) //这里的true代表手动保存 manualSave
       } else {
         console.log("We don't receive the account you select in saveCookies manually", 'accounts:', accounts, 'request.account:', request.account)
       }
@@ -413,7 +413,7 @@ async function removeClosedAccounts() {
   // 遍历现有的账户
   for (const [key, account] of Object.entries(accounts)) {
     // 如果账户没有被标记为关闭，则添加到新的对象中
-    if (!account.closed || account.alias) {
+    if (!account.closed || account.alias || account.manualSave) {
       //如果有alias，说明是用户手动添加的，不应该删除
       //小心这里操作空对象，会报错，目前已修复9.9
       updatedAccounts[key] = account
@@ -461,6 +461,7 @@ chrome.tabs.onRemoved.addListener(async function (tabId, _removeInfo) {
           console.log('rootDomain in remove listener:', rootDomain)
           // await saveCurrentCookies(rootDomain, key)
           // todo 将saveCurrentCookies功能排进一步拆分 10.1
+          // todo 我觉得这里可能没必要进行保存因为保存的话它可能会和onActivated重合这样的话它保存的可能就是新的标签页 12.10
           const cookies = await chrome.cookies.getAll({ domain: rootDomain })
           accounts[key].cookies = cookies
           try {
@@ -468,12 +469,20 @@ chrome.tabs.onRemoved.addListener(async function (tabId, _removeInfo) {
             const result = await saveLocalStorage(Number(tabId))
             if (result && result[0] && result[0].result) {
               accounts[key].localstorage = result[0].result
-              console.log('成功保存localstorage in saveCurrentCookies, account key为:', key)
+              console.log(
+                '成功保存localstorage in saveCurrentCookies, account key为:',
+                key
+              )
             } else {
-              console.log("can't get result in saveLocalStorage in saveCurrentCookies.")
+              console.log(
+                "can't get result in saveLocalStorage in saveCurrentCookies."
+              )
             }
           } catch (error) {
-            console.log('在saveCurrentCookies中需要忽视的报错 in saveLocalStorage:', error)
+            console.log(
+              '在saveCurrentCookies中需要忽视的报错 in saveLocalStorage:',
+              error
+            )
           }
           console.log('保存关闭页面的cookies in remove listener')
         } catch (error) {
