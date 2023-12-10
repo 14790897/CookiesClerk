@@ -51,6 +51,7 @@
           <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2 shadow-lg" @click="loadAllCookies">
             <img src="../../assets/LoadAllCookies.png" alt="Load All Cookies Icon" title="Load All Cookies"
               :class="imageClass" data-i18n-title="loadAllCookies"></button>
+              <StorageManager/>
           <!-- <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold rounded mr-2 p-2" @click="openOptions"
             data-i18n="options">
             Options</button> -->
