@@ -27,18 +27,6 @@ interface Account {
 //   console.log('所有本地同步数据已清除')
 // })
 
-//以下代码中打开option页用于调试
-chrome.runtime.onInstalled.addListener(function (details) {
-  // if (details.reason === 'install' || details.reason === 'update') {
-  //   //
-  //   chrome.runtime.openOptionsPage()
-  // }
-  if (details.reason === 'install') {
-    chrome.storage.local.set({ clearCookiesEnabled: true })
-    chrome.storage.local.set({ modifyLinkEnabled: true }) // 9.12
-  }
-})
-
 // chrome.storage.sync.set({ trackedDomains: JSON.stringify(['kaggle.com', 'saturnenterprise.io', 'twitter.com', 'bilibili.com']) })
 
 //accounts存放在local，domains存放在sync
@@ -1067,7 +1055,8 @@ async function modifyLinksInTab(tabId: number) {
 chrome.runtime.onInstalled.addListener(async (opt) => {
   if (opt.reason === 'install') {
     await chrome.storage.local.clear()
-
+    chrome.storage.local.set({ clearCookiesEnabled: true })
+    chrome.storage.local.set({ modifyLinkEnabled: true })
     chrome.tabs.create({
       active: true,
       url: "https://cookiesclerk.liuweiqing.life/",
