@@ -262,7 +262,9 @@ async function createTabForAccount(account: Account) {
   if (!rootDomain) {
     throw new Error('Root domain not found in processDomain.')
   }
-  const cookieUrl = (account.cookies[0].secure ? 'https://' : 'http://') + rootDomain.replace(/^\./, '')
+  const cookieUrl =
+    (account.cookies[0].secure ? 'https://' : 'http://') +
+    rootDomain.replace(/^\./, '')
   const tab = await chrome.tabs.create({ url: cookieUrl, active: false })
   console.log('create a tab for account:', cookieUrl)
   return { tab, rootDomain }
@@ -657,6 +659,7 @@ async function loadCookies(rootDomain: string, cookies: chrome.cookies.Cookie[])
     console.log('loadCookies已触发,clear的输出应该在此之前')
     const existingCookies = await chrome.cookies.getAll({ domain: rootDomain })
     const promises = Object.values(cookies).map(async (cookie) => {
+      // todo 执行这一步会不会造成一些问题？ 感觉不会12.10
       if (!isCookiePresent(existingCookies, cookie)) {
         const cookieUrl = (cookie.secure ? 'https://' : 'http://') + cookie.domain.replace(/^\./, '') // 移除域名开始的点
         if (cookie.sameSite == undefined) {
@@ -774,7 +777,9 @@ async function processDomain(tab: chrome.tabs.Tab, throwErrors = true): Promise<
     throw new Error('Tab not found in processDomain')
   }
   if (tab.pendingUrl && isSpecialPage(tab.pendingUrl)) {
-    throw new Error(`pendingUrl is specialPage  in processDomain: ${tab.pendingUrl}`)
+    throw new Error(
+      `pendingUrl is specialPage  in processDomain: ${tab.pendingUrl}`
+    )
   }
 
   if (!tab.url) {
@@ -786,19 +791,22 @@ async function processDomain(tab: chrome.tabs.Tab, throwErrors = true): Promise<
   if (!isValidURL(url)) {
     throw new Error('Invalid URL in processDomain:' + url)
   }
-
-  const rootDomain = getRootDomain(url)
-  if (!rootDomain) {
-    throw new Error('Root domain not found in processDomain.')
-  }
   const trackedDomains = await getTrackedDomains() //8.27
+  const rootDomain = getRootDomain(url, trackedDomains)
+  // if (!rootDomain) {
+  //   throw new Error('Root domain not found in processDomain.')
+  // }
 
-  if (trackedDomains.includes(rootDomain)) {
+  //trackedDomains.includes(rootDomain)这个代码现在应该可以去掉12.10
+  if (rootDomain && trackedDomains.includes(rootDomain)) {
     const key = `${rootDomain}-${tab.id}`
     return [rootDomain, key]
   } else {
     if (throwErrors) {
-      throw new Error('This domain is not tracked in processDomain. Root domain: ' + rootDomain)
+      throw new Error(
+        'This domain is not tracked in processDomain. Root domain: ' +
+          rootDomain
+      )
     } else {
       const key = `${rootDomain}-${tab.id}`
       return [rootDomain, key, true]
@@ -806,15 +814,33 @@ async function processDomain(tab: chrome.tabs.Tab, throwErrors = true): Promise<
   }
 }
 
-function getRootDomain(url: string): string | null {
+function getRootDomain(url: string, trackedDomains=[]): string | null {
   try {
+    if (
+      url.startsWith('localhost') ||
+      url.startsWith('http://localhost') ||
+      url.startsWith('https://localhost')
+    ) {
+      // 解析整个 URL 以获取可能的端口号
+      const fullUrl = url.startsWith('http')
+        ? new URL(url)
+        : new URL('http://' + url)
+      return fullUrl.hostname + (fullUrl.port ? ':' + fullUrl.port : '') // 返回 'localhost' 和端口号（如果有）
+    }
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = 'http://' + url // 添加默认的 http 协议
     }
     const domain = new URL(url).hostname
     const parts = domain.split('.')
     if (parts.length < 2) return domain // 如果域名不包括至少两部分，则返回整个域名
-    return parts.slice(-2).join('.') // 返回最后两个部分，用点连接
+    //域名部分是从前往后匹配 12.10
+    for (let i = 0; i < parts.length - 1; i++) {
+      const domain = parts.slice(i).join('.')
+      if (trackedDomains.includes(domain)) {
+        return domain
+      }
+    }
+    return null // 没有匹配的域名
   } catch (e) {
     console.error('Invalid URL:', e)
     return null // 如果 URL 不合法，返回 null 或其他适当的默认值
