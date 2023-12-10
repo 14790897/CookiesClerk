@@ -11,6 +11,7 @@ interface Account {
   closed?: boolean
   refresh?: boolean //加载全部cookie后,是否需要手动刷新?
   alias?: string //用户手动修改的别名 9.13
+  domain?: string //域名12.10
 }
 
 // 定义变量的类型
@@ -256,7 +257,8 @@ async function reloadActiveTab() {
 
 async function createTabForAccount(account: Account) {
   console.log('account.cookies[0].domain',account)
-  const rootDomain = getRootDomain(account.cookies[0].domain)
+  // const rootDomain = getRootDomain(account.cookies[0].domain)
+  const rootDomain = account.domain || ''
   if (!rootDomain) {
     throw new Error('Root domain not found in processDomain.')
   }
@@ -608,6 +610,7 @@ async function saveCurrentCookies(rootDomain: string, key: string, manualSave: b
     // 确保 accounts[key] 已初始化
     accounts[key] = accounts[key] || {}
     accounts[key].cookies = cookies
+    accounts[key].domain = rootDomain //12.10
     //When we use savecookies manually, we should reset the value of manualsave
     // if (typeof manualSave == 'string') {
     //在手动保存的时候会把 Account的key给传进来,自动保存为正常的boolen
