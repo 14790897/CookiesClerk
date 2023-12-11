@@ -805,13 +805,13 @@ async function processDomain(tab: chrome.tabs.Tab, throwErrors = true): Promise<
     throw new Error('Invalid URL in processDomain:' + url)
   }
   const trackedDomains = await getTrackedDomains() //8.27
-  const rootDomain = getRootDomain(url, trackedDomains)
+  let rootDomain = getRootDomain(url, trackedDomains)
   // if (!rootDomain) {
   //   throw new Error('Root domain not found in processDomain.')
   // }
   if (!rootDomain && !throwErrors){
     //只有在手动保存，且之前没有在trackeddomain里找到对应的域名的时候才会触发这个设置 12.10
-    rootDomain = url.hostname
+    rootDomain = new URL(tab.url).hostname
   }
 
   //trackedDomains.includes(rootDomain)这个代码现在应该可以去掉12.10
@@ -820,6 +820,9 @@ async function processDomain(tab: chrome.tabs.Tab, throwErrors = true): Promise<
     return [rootDomain, key]
   } else {
     if (throwErrors) {
+        chrome.storage.local.set({
+          error: 'This domain is not tracked:' + new URL(tab.url).hostname,
+        })
       throw new Error(
         'This domain is not tracked in processDomain. url: ' +
           url
@@ -831,7 +834,7 @@ async function processDomain(tab: chrome.tabs.Tab, throwErrors = true): Promise<
   }
 }
 
-function getRootDomain(url: string, trackedDomains=[]): string | null {
+function getRootDomain(url: string, trackedDomains:string[]=[]): string | null {
   try {
     if (
       url.startsWith('localhost') ||

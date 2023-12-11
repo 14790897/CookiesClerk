@@ -30,6 +30,11 @@ const state = reactive({
     errorMessage: ''
 });
 
+chrome.storage.local.get('error', (data) => {
+    console.log('error in popup from back', data.error);
+    state.errorMessage = data.error || [];
+});
+
 const clearError = () => {
     state.errorMessage = '';
 };
