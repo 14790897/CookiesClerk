@@ -226,6 +226,7 @@ async function loadLocalStorage(tabId: number, data: Record<string, string>) {
 
 async function saveLocalStorage(tabId: number) {
   try {
+    console.log('number(tabId) in saveLocalStorage:', tabId)
     const result = await chrome.scripting.executeScript({
       target: { tabId },
       func: () => {
@@ -607,7 +608,14 @@ async function saveCurrentCookies(rootDomain: string, key: string, manualSave: b
     const accounts = await getStorageData<Record<string, Account>>('accounts') //8.27
 
     // Save the current cookies for this URL and tab index
-    const cookies = await chrome.cookies.getAll({ domain: rootDomain })
+    let cookies = await chrome.cookies.getAll({ domain: rootDomain })
+    console.log('普通 cookies in saveCurrentCookies:', cookies)
+
+    if (isEmptyArray(cookies)) {
+      //如果没有找到cookies说明他可能是localhost, localhost是不能用域名来查找只能用URL来查找
+      cookies = await chrome.cookies.getAll({ url: 'http://' + rootDomain })
+      console.log('http cookies in saveCurrentCookies:', cookies)
+    }
     console.log('cookies in saveCurrentCookies:', cookies)
     // 确保 accounts[key] 已初始化
     accounts[key] = accounts[key] || {}
@@ -620,6 +628,7 @@ async function saveCurrentCookies(rootDomain: string, key: string, manualSave: b
     // }
     console.log('成功保存cookie, account key为:', key)
     try {
+      //手动触发保存的时候这里会找不到ID
       const tabId = extractTabIdFromKey(key)
       const result = await saveLocalStorage(Number(tabId))
       if (result && result[0] && result[0].result) {
@@ -635,6 +644,10 @@ async function saveCurrentCookies(rootDomain: string, key: string, manualSave: b
   } catch (error) {
     console.log('An error occurred in saveCurrentCookies. Notice this error may cause the function not work:', error)
   }
+}
+
+function isEmptyArray(arr) {
+  return Array.isArray(arr) && arr.every((item) => item === undefined)
 }
 
 // 辅助函数：根据 cookie 名称调整 cookie 属性
@@ -796,6 +809,10 @@ async function processDomain(tab: chrome.tabs.Tab, throwErrors = true): Promise<
   // if (!rootDomain) {
   //   throw new Error('Root domain not found in processDomain.')
   // }
+  if (!rootDomain && !throwErrors){
+    //只有在手动保存，且之前没有在trackeddomain里找到对应的域名的时候才会触发这个设置 12.10
+    rootDomain = url.hostname
+  }
 
   //trackedDomains.includes(rootDomain)这个代码现在应该可以去掉12.10
   if (rootDomain && trackedDomains.includes(rootDomain)) {
