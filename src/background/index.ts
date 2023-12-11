@@ -821,8 +821,8 @@ async function processDomain(tab: chrome.tabs.Tab, throwErrors = true): Promise<
   } else {
     if (throwErrors) {
       throw new Error(
-        'This domain is not tracked in processDomain. Root domain: ' +
-          rootDomain
+        'This domain is not tracked in processDomain. url: ' +
+          url
       )
     } else {
       const key = `${rootDomain}-${tab.id}`
