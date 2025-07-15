@@ -13,7 +13,8 @@ CookiesClerk 是一款谷歌 Chrome 浏览器插件，可简化同一网站多�
 3. 插件将添加到您的浏览器中。
 
 ## 教程
-https://cookiesclerk.liuweiqing.life/
+https://cookiesclerk.14790897.xyz
+
 群聊：[telegram](https://t.me/+82ubVolec6MwNGU1)
 
 ### 功能
